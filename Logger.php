@@ -105,7 +105,7 @@ class Logger implements LoggerInterface
 				});
 
 				$buffer  = \array_merge($buffer, \array_map(function(array $record) use($formatter) {
-					return $formatter($record[self::RECORD_LEVELNAME], $record[self::RECORD_MESSAGE], $record[self::RECORD_CONTEXT]);
+					return $formatter(...$record);
 				}, $records));
 
 				while(count($buffer) >= $interval)
