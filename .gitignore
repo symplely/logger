@@ -1,0 +1,6 @@
+#composer builds
+composer.lock
+vendor/
+
+#phpunit
+phpunit.xml

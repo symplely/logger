@@ -1,0 +1,24 @@
+{
+    "name": "def/logger",
+    "keywords": ["psr-3", "log", "logging"],
+    "type": "library",
+    "homepage": "https://github.com/andrew-kamenchuk/def-logger",
+    "description": "psr-3 compatible logger",
+    "require": {
+        "php": ">=5.6",
+        "psr/log": "~1.0"
+    },
+    "provide": {
+      "psr/log-implementation": "1.0.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "andrew-kamenchuk",
+            "email": "andrew.kamenchuk@gmail.com"
+        }
+    ],
+    "autoload": {
+      "psr-4": {"def\\Logger\\":""}
+    }
+}
