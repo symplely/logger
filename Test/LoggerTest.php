@@ -6,29 +6,32 @@ use Psr\Log\Test\LoggerInterfaceTest;
 
 class LoggerTest extends LoggerInterfaceTest
 {
-	protected $logger, $logs = [];
+    protected $logger;
+    protected $logs = [];
 
-	public function getLogger()
-	{
-		return $this->logger;
-	}
+    public function getLogger()
+    {
+        return $this->logger;
+    }
 
-	public function getLogs()
-	{
-		return $this->logs;
-	}
+    public function getLogs()
+    {
+        return $this->logs;
+    }
 
-	protected function setUp()
-	{
-		$this->logger = new Logger("php-app");
+    protected function setUp()
+    {
+        Logger::setRegisterLoggers(false);
 
-		$this->logger->setArrayHandler($this->logs, function($levelname, $message) {
-			return "$levelname $message";
-		});
-	}
+        $this->logger = new Logger("php-app");
 
-	protected function tearDown()
-	{
-		$this->logs = [];
-	}
+        $this->logger->setArrayHandler($this->logs, function ($levelname, $message) {
+            return "$levelname $message";
+        });
+    }
+
+    protected function tearDown()
+    {
+        $this->logs = [];
+    }
 }

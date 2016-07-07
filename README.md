@@ -2,7 +2,7 @@
 
 ![Build](https://travis-ci.org/andrew-kamenchuk/def-logger.svg?branch=master)
 
-psr compatible php logger
+psr compatible php single class logger
 
 basic usage:
 ```php
@@ -12,7 +12,7 @@ $logger = new Logger('def-logger');
 
 ```
 
-Basic Logic: handler - is a php callable, applied to logger with some levels bitmask
+Now you can set a callable handler to write log messages:
 
 ```php
 $logger->setHandler('print_r');
@@ -22,29 +22,23 @@ $logger->setHandler('print_r');
 $logger->setHandler('print_r', null, Logger::ALL, 10);
 ```
 
-There are some handlers already defined, example:
+There are some handlers already defined, for example:
 ```php
-$logger->setStreamHandler(STDERR, null, Logger::DEBUG);
+$logger->setStreamHandler(STDERR, null, Logger::DEBUG); // there are also error_log, syslog and mail handler
 ```
 You can change default formatting:
 ```php
 $logger->setDefaultFormatter(function($levelname, $message, array $context) {
-	return 'some string';
+    return "$levelname *|$message|* ";
 });
 ```
-or passing formatter to setHandler, setStreamHandler, etc :
+or pass custom formatter to setHandler, setStreamHandler, etc :
 ```php
 $logger->setHandler('print_r', function($levelname, $message, array $context) {
-	//	
+    //
 });
 ```
 
-You can use any Psr\Log\LoggerInterface implementation:
-```php
-$logger->bindLogger(new Some\Psr\Logger());
-
-$logger->info('test message'); // will delegate logging to Some\Psr\Logger
-```
 It is possible to disable some levels for handling:
 ```php
 $logger->disable(Logger::DEBUG | Logger::INFO);
@@ -54,6 +48,6 @@ $logger->disable(Logger::DEBUG | Logger::INFO);
 
 ```php
 $logger->addContextProcessor('some_key', function(array $context) {
-	return 'some_value';
+    return 'some_value';
 });
 ```

@@ -3,7 +3,7 @@
     "keywords": ["psr-3", "log", "logging"],
     "type": "library",
     "homepage": "https://github.com/andrew-kamenchuk/def-logger",
-    "description": "psr-3 compatible logger",
+    "description": "single class psr logger",
     "require": {
         "php": ">=5.6",
         "psr/log": "~1.0"
