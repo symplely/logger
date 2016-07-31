@@ -8,6 +8,7 @@ use Psr\Log\InvalidArgumentException;
 
 class Logger implements LoggerInterface
 {
+    const NULL      = 0;
     const DEBUG     = 0x01;
     const INFO      = 0x02;
     const NOTICE    = 0x04;
@@ -16,209 +17,199 @@ class Logger implements LoggerInterface
     const CRITICAL  = 0x20;
     const ALERT     = 0x40;
     const EMERGENCY = 0x80;
+    const ALL       = 0xff;
 
-    private $levels = [
-        LogLevel::DEBUG     => self::DEBUG,
-        LogLevel::INFO      => self::INFO,
-        LogLevel::NOTICE    => self::NOTICE,
-        LogLevel::WARNING   => self::WARNING,
-        LogLevel::ERROR     => self::ERROR,
-        LogLevel::CRITICAL  => self::CRITICAL,
-        LogLevel::ALERT     => self::ALERT,
-        LogLevel::EMERGENCY => self::EMERGENCY,
+    private static $levels = [
+        self::DEBUG     => LogLevel::DEBUG,
+        self::INFO      => LogLevel::INFO,
+        self::NOTICE    => LogLevel::NOTICE,
+        self::WARNING   => LogLevel::WARNING,
+        self::ERROR     => LogLevel::ERROR,
+        self::CRITICAL  => LogLevel::CRITICAL,
+        self::ALERT     => LogLevel::ALERT,
+        self::EMERGENCY => LogLevel::EMERGENCY,
     ];
-
-    const ALL       = -1;
-    const NULL      =  0;
-
-    const PSR_ALL   = 0xff;
 
     private static $loggers = [];
 
-    private static $registerLoggers = true;
-
-    /**
-     * @var string
-     */
-    private $channel;
-
-    /**
-     * @var callable
-     */
-    private $formatter;
-
-    private $enabled = self::ALL;
-
-    /**
-     * @var callable[]
-     */
-    private $handlers = [];
-
-    /**
-     * @var callable[]
-     */
-    private $processors = [];
-
-    /**
-     * @var boolean
-     */
-    private $flush = false;
-
-    /**
-     * @var callable[]
-     */
-    private $after = [];
-
+    public static function getLogger($name)
+    {
+        return isset(self::$loggers[$name]) ? self::$loggers[$name] : new self($name);
+    }
 
     use LoggerTrait;
 
-    /**
-     * @param boolean $registerLoggers
-     */
-    public static function setRegisterLoggers($registerLoggers = true)
+    private $name;
+
+    private $handlers = [];
+
+    private $defaultFormatter;
+
+    private $processors = [];
+
+    private $onClose = [];
+
+    private $enabled = self::ALL;
+
+    public function __construct($name)
     {
-        self::$registerLoggers = $registerLoggers;
-    }
+        $this->name = $name;
 
-    /**
-     * @param string $channel
-     */
-    public static function getLogger($channel)
-    {
-        return isset(self::$loggers[$channel]) ? self::$loggers[$channel] : new self($channel);
-    }
-
-    public function __construct($channel, ...$levels)
-    {
-        $this->channel = $channel;
-
-        $level = \max($this->levels);
-
-        foreach (\array_map('strtolower', $levels) as $levelname) {
-            if (!isset($this->levels[$levelname])) {
-                $this->levels[$levelname] = $level <<= 1;
-            }
-        }
-
-        $this->setDefaultFormatter(function ($levelname, $message, array $context) {
-            return "{$this->channel}: [$levelname] '$message'";
+        $this->setDefaultFormatter(function ($levelname, $message) use ($name) {
+            return sprintf("[%s] (%s): %-10s '%s'", date(DATE_RFC822), $name, strtoupper($levelname), $message);
         });
 
-        if (self::$registerLoggers) {
-            self::$loggers[$channel] = $this;
+        if (isset(self::$loggers[$name])) {
+            throw new InvalidArgumentException("Logger('$name') already defined");
         }
+
+        self::$loggers[$name] = $this;
+    }
+
+    public function getName()
+    {
+        return $this->name;
     }
 
     public function setDefaultFormatter(callable $formatter)
     {
-        $this->formatter = $formatter;
+        $this->defaultFormatter = $formatter;
     }
 
-    public function disable($mask)
+    public function disable($levels)
     {
-        $this->enabled &= ~$mask;
+        $this->enabled &= ~$levels;
     }
 
-    public function enable($mask)
+    public function enable($levels)
     {
-        $this->enabled |= $mask;
+        $this->enabled |= $levels;
     }
 
-    public function enabled($mask)
+    public function levels(...$levelnames)
     {
-        return $mask == ($this->enabled & $mask);
+        return array_reduce($levelnames, function ($levels, $levelname) {
+            return $levels | (int) array_search($levelname, self::$levels, true);
+        }, self::NULL);
     }
 
-    public function setHandler(callable $handler, callable $formatter = null, $mask = self::ALL, $interval = 1)
+    public function setWriter(callable $writer, $levels = self::ALL, $interval = 1, callable $formatter = null)
     {
         if (!isset($formatter)) {
-            $formatter = $this->formatter;
+            $formatter = $this->defaultFormatter;
         }
 
         if ($interval > 1) {
-            $this->handlers[] = function (array $records) use ($handler, $formatter, $mask, $interval) {
+            $this->handlers[] = function (
+                $level,
+                $message,
+                array $context,
+                $flush = false
+            ) use (
+                $writer,
+                $formatter,
+                $levels,
+                $interval
+            ) {
                 static $buffer = [];
 
-                foreach ($records as list($level, $levelname, $message, $context)) {
-                    if ($level & $mask == 0) {
-                        continue;
-                    }
-
-                    $buffer[] = $formatter($levelname, $message, $context);
+                if ($level & $levels) {
+                    $buffer[] = $formatter(self::$levels[$level], $message, $context);
                 }
 
                 while (count($buffer) >= $interval) {
-                    $handler(\array_splice($buffer, 0, $interval));
+                    $writer(array_splice($buffer, 0, $interval));
                 }
 
-                if ($this->flush && !empty($buffer)) {
-                    $handler(\array_splice($buffer, 0));
+                if ($flush && !empty($buffer)) {
+                    $writer(array_splice($buffer, 0));
                 }
             };
         } else {
-            $this->handlers[] = function (array $records) use ($handler, $formatter, $mask) {
-                foreach ($records as list($level, $levelname, $message, $context)) {
-                    if ($level & $mask) {
-                        $handler($formatter($levelname, $message, $context));
-                    }
+            $this->handlers[] = function ($level, $message, array $context) use ($writer, $formatter, $levels) {
+                if (0 == ($level & $levels)) {
+                    return;
                 }
+
+                $writer($formatter(self::$levels[$level], $message, $context));
             };
+        }
+    }
+
+    public function flush()
+    {
+        foreach ($this->handlers as $handler) {
+            $handler(self::NULL, null, [], true);
         }
     }
 
     public function log($levelname, $message, array $context = [])
     {
-        if (!isset($this->levels[$levelname])) {
-            throw new InvalidArgumentException("Invalid '{$this->channel}' logger level name: {$levelname}");
+        if (false === $level = array_search($levelname, self::$levels, true)) {
+            throw new InvalidArgumentException(sprintf("Unknown logger(%s) level name: '%s'", $this->name, $levelname));
         }
 
-        return $this->message($this->levels[$levelname], $message, $context);
-    }
+        if (0 == ($level & $this->enabled)) {
+            return;
+        }
 
-    public function message($mask, $message, array $context = [])
-    {
         foreach ($this->processors as $key => $processor) {
             $context[$key] = $processor($context);
         }
 
         $message = self::interpolate((string) $message, $context);
 
-        $records = [];
-
-        foreach ($this->levels as $levelname => $level) {
-            if (($level & $this->enabled & $mask)) {
-                $records[] = [$level, $levelname, $message, $context];
-            }
-        }
-
-        if (!empty($records)) {
-            foreach ($this->handlers as $handler) {
-                $handler($records);
-            }
+        foreach ($this->handlers as $handler) {
+            $handler($level, $message, $context);
         }
     }
 
+    public function onClose(callable $command)
+    {
+        $this->onClose[] = $command;
+    }
+
+    public function close()
+    {
+        $this->flush();
+
+        foreach ($this->onClose as $command) {
+            $command();
+        }
+
+        unset(self::$loggers[$this->name]);
+    }
+
+    /**
+     * TODO: improve
+     */
     private static function interpolate($string, array $vars)
     {
-        if (!preg_match_all('~\{(?<key>[\w\.]+)\}~', $string, $matches)) {
+        if (!preg_match_all("~\{([\w\.]+)\}~", $string, $matches, PREG_SET_ORDER)) {
             return $string;
         }
 
         $replacement = [];
 
-        foreach ($vars as $key => $value) {
-            if (!\in_array($key, $matches['key'])) {
+        foreach ($matches as list($match, $key)) {
+            if (!array_key_exists($key, $vars)) {
                 continue;
             }
 
-            if (\is_array($value) || (\is_object($value) && !\method_exists($value, '__toString'))) {
-                continue;
-            }
+            $value = $vars[$key];
 
-            $replacement['{' . $key . '}'] = (string) $value;
+            if ($value instanceof \Exception) {
+                $replacement[$match] = sprintf("%s(%s)", get_class($value), $value->getMessage());
+            } elseif (is_object($value) && method_exists($value, "__toString")) {
+                $replacement[$match] = $value->__toString();
+            } elseif (is_bool($value) || null === $value) {
+                $replacement[$match] = var_export($value, true);
+            } elseif (is_scalar($value)) {
+                $replacement[$match] = (string) $value;
+            }
         }
 
-        return \strtr($string, $replacement);
+        return strtr($string, $replacement);
     }
 
     /**
@@ -230,137 +221,111 @@ class Logger implements LoggerInterface
         $this->processors[$key] = $processor;
     }
 
-    public function after(callable $command)
-    {
-        $this->after[] = $command;
-    }
-
     /**
-     * flushes local messages buffers
-     */
-    public function flush()
-    {
-        $this->flush = true;
-
-        foreach ($this->handlers as $handler) {
-            $handler([]);
-        }
-
-        $this->flush = false;
-    }
-
-    public function close()
-    {
-        $this->flush();
-
-        foreach ($this->after as $command) {
-            $command();
-        }
-    }
-
-    /**
-     * concrete handlers
+     * concrete writers
      */
 
     /**
      * @param string|resource id $stream
-     * @param callable $formatter
      * @param int $mask
      * @param int $interval
+     * @param callable $formatter
      */
-    public function setStreamHandler($stream, callable $formatter = null, $mask = self::ALL, $interval = 1)
+    public function setStreamWriter($stream, $levels = self::ALL, $interval = 1, callable $formatter = null)
     {
-        if (!\is_resource($stream)) {
-            $stream = \fopen($stream, 'a');
+        if (!is_resource($stream)) {
+            $stream = fopen($stream, 'a');
 
-            $this->after(function () use ($stream) {
-                return \fclose($stream);
+            $this->onClose(function () use ($stream) {
+                return fclose($stream);
             });
         }
 
         if ($interval > 1) {
-            return $this->setHandler(function (array $messages) use ($stream) {
-                return \fwrite($stream, implode("\n", $messages) . "\n");
-            }, $formatter, $mask, $interval);
+            return $this->setWiter(function (array $messages) use ($stream) {
+                return fwrite($stream, implode("\n", $messages) . "\n");
+            }, $levels, $interval, $formatter);
         } else {
-            return $this->setHandler(function ($message) use ($stream) {
-                return \fwrite($stream, "$message\n");
-            }, $formatter, $mask);
+            return $this->setWriter(function ($message) use ($stream) {
+                return fwrite($stream, "$message\n");
+            }, $levels, 1, $formatter);
         }
     }
 
-    public function setSyslogHandler(
-        $logopts = \LOG_PID,
-        $facility = \LOG_USER,
-        callable $formatter = null,
-        $mask = self::PSR_ALL
+    public function setSyslogWriter(
+        $logopts = LOG_PID,
+        $facility = LOG_USER,
+        $levels = self::ALL,
+        callable $formatter = null
     ) {
-        static $levels = [
-            self::DEBUG  => \LOG_DEBUG,  self::INFO      => \LOG_INFO,
-            self::NOTICE => \LOG_NOTICE, self::WARNING   => \LOG_WARNING,
-            self::ERROR  => \LOG_ERR,    self::CRITICAL  => \LOG_CRIT,
-            self::ALERT  => \LOG_ALERT,  self::EMERGENCY => \LOG_EMERG,
+        static $map = [
+            self::DEBUG  => LOG_DEBUG,  self::INFO      => LOG_INFO,
+            self::NOTICE => LOG_NOTICE, self::WARNING   => LOG_WARNING,
+            self::ERROR  => LOG_ERR,    self::CRITICAL  => LOG_CRIT,
+            self::ALERT  => LOG_ALERT,  self::EMERGENCY => LOG_EMERG,
         ];
 
-        \openlog('', $logopts, $facility);
+        openlog('', $logopts, $facility);
 
-        $this->after('closelog');
+        $this->onClose('closelog');
 
-        $mask &= self::PSR_ALL;
-
-        foreach ($this->levels as $level) {
-            if ($level & $mask) {
-                $this->setHandler(function ($message) use ($level, $levels) {
-                    return \syslog($levels[$level], $message);
-                }, $formatter, $level);
+        foreach ($map as $level => $syslevel) {
+            if ($level & $levels) {
+                $this->setWriter(function ($message) use ($syslevel) {
+                    return syslog($syslevel, $message);
+                }, $level, 1, $formatter);
             }
         }
     }
 
-    public function setErrorLogHandler($type = 0, callable $formatter = null, $mask = self::ALL)
+    public function setErrorLogWriter($type = 0, $levels = self::ALL, callable $formatter = null)
     {
         static $types = [0 => true, 4 => true];
 
         if (isset($types[$type])) {
-            return $this->setHandler(function ($message) use ($type) {
+            return $this->setWriter(function ($message) use ($type) {
                 return \error_log($message, $type);
-            }, $formatter, $mask);
+            }, $levels, 1, $formatter);
         }
     }
 
-    public function setMailHandler(
+    public function setMailWriter(
         $to,
         $subject,
         array $headers = [],
-        callable $formatter = null,
-        $mask = self::ALL,
-        $interval = 1
+        $levels = self::ALL,
+        $interval = 1,
+        callable $formatter = null
     ) {
         if ($interval > 1) {
-            return $this->setHandler(function (array $messages) use ($to, $subject, $headers) {
-                return \mail($to, $subject, implode("\n", $messages), implode("\r\n", $headers));
-            }, $formatter, $mask, $interval);
+            return $this->setWriter(function (array $messages) use ($to, $subject, $headers) {
+                return mail($to, $subject, implode("\n", $messages), implode("\r\n", $headers));
+            }, $levels, $interval, $formatter);
         } else {
-            return $this->setHandler(function ($message) use ($to, $subject, $headers) {
-                return \mail($to, $subject, $message, implode("\r\n", $headers));
-            }, $formatter, $mask);
+            return $this->setWriter(function ($message) use ($to, $subject, $headers) {
+                return mail($to, $subject, $message, implode("\r\n", $headers));
+            }, $levels, 1, $formatter);
         }
     }
 
-    public function setArrayHandler(array &$array = null, callable $formatter = null, $mask = self::ALL, $interval = 1)
-    {
+    public function setArrayWriter(
+        array &$array = null,
+        $levels = self::ALL,
+        $interval = 1,
+        callable $formatter = null
+    ) {
         if (!isset($array)) {
             $array = [];
         }
 
         if ($interval > 1) {
-            return $this->setHandler(function (array $messages) use (&$array) {
-                $array = \array_merge($array, $messages);
-            }, $formatter, $mask, $interval);
+            return $this->setWriter(function (array $messages) use (&$array) {
+                array_push($array, ...$messages);
+            }, $levels, $interval, $formatter);
         } else {
-            return $this->setHandler(function ($message) use (&$array) {
+            return $this->setWriter(function ($message) use (&$array) {
                 $array[] = $message;
-            }, $formatter, $mask);
+            }, $levels, 1, $formatter);
         }
     }
 
@@ -371,21 +336,21 @@ class Logger implements LoggerInterface
     public function addUniqueId($prefix = '')
     {
         return $this->addContextProcessor('unique_id', function () use ($prefix) {
-            return \uniqid($prefix);
+            return uniqid($prefix);
         });
     }
 
     public function addPid()
     {
         return $this->addContextProcessor('pid', function () {
-            return \getmypid();
+            return getmypid();
         });
     }
 
     public function addTimestamp($micro = false)
     {
         return $this->addContextProcessor('timestamp', function () use ($micro) {
-            return $micro ? \microtime(true) : \time();
+            return $micro ? microtime(true) : time();
         });
     }
 
@@ -396,7 +361,7 @@ class Logger implements LoggerInterface
         }
 
         return $this->addContextProcessor('memory_usage', function () use ($format, $real, $peak) {
-            $memory_usage = $peak ? \memory_get_peak_usage($real) : \memory_get_usage($real);
+            $memory_usage = $peak ? memory_get_peak_usage($real) : memory_get_usage($real);
             switch ($format) {
                 case 'GB':
                     $memory_usage /= 1024;
@@ -409,21 +374,21 @@ class Logger implements LoggerInterface
                     // no break
             }
 
-            return $format ? \sprintf("%.3f $format", $memory_usage) : $memory_usage;
+            return $format ? sprintf("%.3f $format", $memory_usage) : $memory_usage;
         });
     }
 
     public function addPhpSapi()
     {
         return $this->addContextProcessor('php_sapi', function () {
-            return \PHP_SAPI;
+            return php_sapi_name();
         });
     }
 
     public function addPhpVersion()
     {
         return $this->addContextProcessor('php_version', function () {
-            return \PHP_VERSION;
+            return PHP_VERSION;
         });
     }
 }

@@ -21,17 +21,16 @@ class LoggerTest extends LoggerInterfaceTest
 
     protected function setUp()
     {
-        Logger::setRegisterLoggers(false);
-
         $this->logger = new Logger("php-app");
 
-        $this->logger->setArrayHandler($this->logs, function ($levelname, $message) {
-            return "$levelname $message";
+        $this->logger->setArrayWriter($this->logs, Logger::ALL, 1, function ($level, $message) {
+            return "$level $message";
         });
     }
 
     protected function tearDown()
     {
         $this->logs = [];
+        $this->logger->close();
     }
 }
