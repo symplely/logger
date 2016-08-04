@@ -199,11 +199,19 @@ class Logger implements LoggerInterface
             $value = $vars[$key];
 
             if ($value instanceof \Exception) {
-                $replacement[$match] = sprintf("%s(%s)", get_class($value), $value->getMessage());
+                $replacement[$match] = sprintf(
+                    "%s(%s at %s:%d)",
+                    get_class($value),
+                    $value->getMessage(),
+                    $value->getFile(),
+                    $value->getLine()
+                );
             } elseif (is_object($value) && method_exists($value, "__toString")) {
                 $replacement[$match] = $value->__toString();
             } elseif (is_bool($value) || null === $value) {
                 $replacement[$match] = var_export($value, true);
+            } elseif (is_resource($value)) {
+                $replacement[$match] = sprintf("[resource(%s)]", get_resource_type($value));
             } elseif (is_scalar($value)) {
                 $replacement[$match] = (string) $value;
             }
