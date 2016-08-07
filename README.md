@@ -1,8 +1,8 @@
 ## def-logger
 
-![Build](https://travis-ci.org/andrew-kamenchuk/def-logger.svg?branch=master)
+(*single class psr compatible php logger*)
 
-psr compatible php single class logger
+[![Build Status](https://travis-ci.org/andrew-kamenchuk/def-logger.svg?branch=master)](https://travis-ci.org/andrew-kamenchuk/def-logger)
 
 basic usage:
 ```php
