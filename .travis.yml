@@ -1,6 +1,16 @@
 language: php
+
 php:
-  - 5.6
-  - hhvm
-install: composer install
-script: phpunit
+  - 7.1
+  - 7.2
+  - 7.3
+
+before_script:
+  - composer install
+  - composer self-update
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+script:
+  - vendor/bin/phpunit --coverage-clover=coverage.xml

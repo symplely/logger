@@ -1,24 +1,38 @@
 {
-    "name": "def/logger",
-    "keywords": ["psr-3", "log", "logging"],
+    "name": "symplely/logger",
+    "keywords": ["psr-3", "log", "logging", "async", "coroutine", "yield"],
     "type": "library",
-    "homepage": "https://github.com/andrew-kamenchuk/def-logger",
-    "description": "single class psr logger implementation",
+    "homepage": "https://github.com/symplely/logger",
+    "description": "An simple asynchronous psr logger implementation",
     "require": {
-        "php": ">=5.6",
-        "psr/log": "~1.0"
+        "php": ">7.1",
+        "psr/log": "~1.0",
+        "symplely/coroutine": "^1.1.9"
     },
     "provide": {
       "psr/log-implementation": "1.0.0"
     },
+    "require-dev": {
+        "phpunit/phpunit": ">5.7"
+    },
     "license": "MIT",
     "authors": [
+        {
+            "name": "Lawrence Stubbs",
+            "email": "lstubbs@techno.express"
+        },
         {
             "name": "andrew-kamenchuk",
             "email": "andrew.kamenchuk@gmail.com"
         }
     ],
     "autoload": {
-      "psr-4": {"def\\Logger\\":"", "def\\Logger\\Test\\": "./tests"}
+      "psr-4": {
+          "Async\\Logger\\": "Logger/"}
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Async\\Tests\\": "tests/"
+        }
     }
 }

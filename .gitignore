@@ -1,6 +1,9 @@
-#composer builds
+build/
 composer.lock
+composer.phar
 vendor/
-
-#phpunit
-phpunit.xml
+*.lock
+*.cache
+*.crt
+*.pem
+*.csr
