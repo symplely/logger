@@ -370,6 +370,18 @@ class LoggerTest extends TestCase
         }
     }
 
+	public function testSysLog()
+	{
+        $log = new Logger("log-app");
+        $this->assertTrue($log->isLogger('log-app'));
+        $log->syslogWriter();
+		$log->debug('This is a debug message');
+		$log->warning('This is a warning message');
+
+        $log->close();
+        $this->assertFalse($log->isLogger('log-app'));
+    }
+
     /**
      * @dataProvider provideLevelsAndMessages
      */

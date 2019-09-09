@@ -62,9 +62,14 @@ class Logger implements LoggerInterface
         self::$loggers[$name] = $this;
     }
 
-    public static function getLogger($name)
+    public static function getLogger($name): LoggerInterface
     {
         return isset(self::$loggers[$name]) ? self::$loggers[$name] : new self($name);
+    }
+
+    public static function isLogger($name): bool
+    {
+        return isset(self::$loggers[$name]);
     }
 
     public function getName()
@@ -85,13 +90,6 @@ class Logger implements LoggerInterface
     public function enable($levels)
     {
         $this->enabled |= $levels;
-    }
-
-    public function levels(...$names)
-    {
-        return \array_reduce($names, function ($levels, $name) {
-            return $levels | (int) \array_search($name, self::$levels, true);
-        }, self::NULL);
     }
 
     public function setWriter(callable $writer, $levels = self::ALL, $interval = 1, callable $formatter = null)
@@ -269,7 +267,7 @@ class Logger implements LoggerInterface
     }
 
     public function syslogWriter(
-        $logOpts = \LOG_PID,
+        $logOpts = \LOG_PID | \LOG_ODELAY,
         $facility = \LOG_USER,
         $levels = self::ALL,
         callable $formatter = null
