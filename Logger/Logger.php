@@ -100,16 +100,8 @@ class Logger implements LoggerInterface
 
         if ($interval > 1) {
             $this->handlers[] = function (
-                $level,
-                $message,
-                array $context,
-                $flush = false
-            ) use (
-                $writer,
-                $formatter,
-                $levels,
-                $interval
-            ) {
+                $level, $message, array $context, $flush = false) use ($writer, $formatter, $levels, $interval) 
+            {
                 static $buffer = [];
 
                 if ($level & $levels) {
