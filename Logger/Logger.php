@@ -3,10 +3,10 @@ namespace Async\Logger;
 
 use Psr\Log\LogLevel;
 use Psr\Log\LoggerInterface;
-use Psr\Log\LoggerTrait;
 use Psr\Log\InvalidArgumentException;
+use Async\Logger\AsyncLogger;
 
-class Logger implements LoggerInterface
+class Logger extends AsyncLogger implements LoggerInterface
 {
     const NULL      = 0;
     const DEBUG     = 0x01;
@@ -31,8 +31,6 @@ class Logger implements LoggerInterface
     ];
 
     private static $loggers = [];
-
-    use LoggerTrait;
 
     private $name;
 
