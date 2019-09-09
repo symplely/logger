@@ -5,6 +5,7 @@ use Psr\Log\LogLevel;
 use Psr\Log\LoggerInterface;
 use Psr\Log\InvalidArgumentException;
 use Async\Logger\AsyncLogger;
+use Async\Coroutine\Kernel;
 
 class Logger extends AsyncLogger implements LoggerInterface
 {
@@ -150,7 +151,7 @@ class Logger extends AsyncLogger implements LoggerInterface
         $message = self::interpolate((string) $message, $context);
 
         foreach ($this->handlers as $handler) {
-            $handler($level, $message, $context);
+            yield $handler($level, $message, $context);
         }
     }
 
@@ -241,16 +242,19 @@ class Logger extends AsyncLogger implements LoggerInterface
                 ));
             }
 
+            \stream_set_blocking($stream, false);
             $this->onClose(function () use ($stream) {
                 return \fclose($stream);
             });
         }
         if ($interval > 1) {
             return $this->setWriter(function (array $messages) use ($stream) {
+                yield Kernel::writeWait($stream);
                 return \fwrite($stream, \implode("\n", $messages) . "\n");
             }, $levels, $interval, $formatter);
         } else {
             return $this->setWriter(function ($message) use ($stream) {
+                yield Kernel::writeWait($stream);
                 return \fwrite($stream, "$message\n");
             }, $levels, 1, $formatter);
         }
