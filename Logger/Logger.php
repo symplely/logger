@@ -54,7 +54,7 @@ class Logger extends AsyncLogger implements LoggerInterface
         });
 
         if (isset(self::$loggers[$name])) {
-            $this->close();
+            yield $this->close();
             throw new InvalidArgumentException("Logger('$name') already defined");
         }
 
@@ -91,6 +91,9 @@ class Logger extends AsyncLogger implements LoggerInterface
         $this->enabled |= $levels;
     }
 
+    /**
+     * Setup the writer handler, Set the logging level of the handler.
+     */
     public function setWriter(callable $writer, $levels = self::ALL, $interval = 1, callable $formatter = null)
     {
         if (!isset($formatter)) {
@@ -99,7 +102,7 @@ class Logger extends AsyncLogger implements LoggerInterface
 
         if ($interval > 1) {
             $this->handlers[] = function (
-                $level, $message, array $context, $flush = false) use ($writer, $formatter, $levels, $interval) 
+                $level, $message, array $context, $flush = false) use ($writer, $formatter, $levels, $interval)
             {
                 static $buffer = [];
 
@@ -126,17 +129,20 @@ class Logger extends AsyncLogger implements LoggerInterface
         }
     }
 
+    /**
+     * Ensure all logging output has been flushed
+     */
     public function flush()
     {
         foreach ($this->handlers as $handler) {
-            $handler(self::NULL, null, [], true);
+            yield $handler(self::NULL, null, [], true);
         }
     }
 
     public function log($level, $message, array $context = [])
     {
         if (false === $level = \array_search($level, self::$levels, true)) {
-            $this->close();
+            yield $this->close();
             throw new InvalidArgumentException(\sprintf("Unknown logger(%s) level name: '%s'", $this->name, $level));
         }
 
@@ -160,12 +166,15 @@ class Logger extends AsyncLogger implements LoggerInterface
         $this->onClose[] = $command;
     }
 
+    /**
+     * Tidy up any resources used by the writer handler.
+     */
     public function close()
     {
-        $this->flush();
+        yield from $this->flush();
 
         foreach ($this->onClose as $command) {
-            $command();
+            yield $command();
         }
 
         unset(self::$loggers[$this->name]);
@@ -236,7 +245,7 @@ class Logger extends AsyncLogger implements LoggerInterface
             $stream = @\fopen($stream, 'a');
 
             if (!\is_resource($stream)) {
-                $this->close();
+                yield $this->close();
                 throw new InvalidArgumentException(sprintf(
                     'The stream "%s" cannot be created or opened', $stream
                 ));
@@ -247,6 +256,7 @@ class Logger extends AsyncLogger implements LoggerInterface
                 return \fclose($stream);
             });
         }
+
         if ($interval > 1) {
             return $this->setWriter(function (array $messages) use ($stream) {
                 yield Kernel::writeWait($stream);
@@ -307,7 +317,7 @@ class Logger extends AsyncLogger implements LoggerInterface
     ) {
 
         if (!\filter_var($to, \FILTER_VALIDATE_EMAIL)) {
-            $this->close();
+            yield $this->close();
             throw new InvalidArgumentException(\sprintf('"%s" is an invalid email address', $to));
         }
 
@@ -315,7 +325,7 @@ class Logger extends AsyncLogger implements LoggerInterface
             return $this->setWriter(function (array $messages) use ($to, $subject, $headers) {
                 $mailer = @\mail($to, $subject, \implode("\n", $messages), \implode("\r\n", $headers));
                 if (!$mailer) {
-                    $this->close();
+                    yield $this->close();
                     throw new \InvalidArgumentException(\error_get_last()['message']);
                 }
 
@@ -325,7 +335,7 @@ class Logger extends AsyncLogger implements LoggerInterface
             return $this->setWriter(function ($message) use ($to, $subject, $headers) {
                 $mailer = @\mail($to, $subject, $message, \implode("\r\n", $headers));
                 if (!$mailer) {
-                    $this->close();
+                    yield $this->close();
                     throw new InvalidArgumentException(\error_get_last()['message']);
                 }
 
@@ -382,7 +392,7 @@ class Logger extends AsyncLogger implements LoggerInterface
     public function addMemoryUsage($format = null, $real = false, $peak = false)
     {
         if (isset($format) && !\preg_match('~^(K|M|G)?B$~', $format)) {
-            $this->close();
+            yield $this->close();
             throw new \InvalidArgumentException("Unknown memory format: '$format'");
         }
 
