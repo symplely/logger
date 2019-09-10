@@ -7,7 +7,7 @@
     "require": {
         "php": ">7.1",
         "psr/log": "~1.0",
-        "symplely/coroutine": "^1.2.0"
+        "symplely/coroutine": "^1.2.1"
     },
     "provide": {
       "psr/log-implementation": "1.0.0"
