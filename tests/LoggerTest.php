@@ -124,6 +124,9 @@ class LoggerTest extends TestCase
 		$log->emergency('This is an emergency with {unique_id}');
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        /**
+         * @see http://txt2re.com/
+         */
         $re1='(\\[.*?\\])';	# Square Braces 1
         $re2='(\\s+)';	# White Space 1
         $re3='(\\(.*\\))';	# Round Braces 1
@@ -157,7 +160,10 @@ class LoggerTest extends TestCase
 		$log->addPid();
 		$log->alert('This is an alert with {pid}');
 
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        /**
+         * @see http://txt2re.com/
+         */
         $re1='(\\[.*?\\])';	# Square Braces 1
         $re2='(\\s+)';	# White Space 1
         $re3='(\\(.*\\))';	# Round Braces 1
@@ -190,7 +196,10 @@ class LoggerTest extends TestCase
 		$log->addTimestamp(true);
 		$log->critical('This is a critical situation happened at {timestamp}');
 
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        /**
+         * @see http://txt2re.com/
+         */
         $re1='(\\[.*?\\])';	# Square Braces 1
         $re2='(\\s+)';	# White Space 1
         $re3='(\\(.*\\))';	# Round Braces 1
