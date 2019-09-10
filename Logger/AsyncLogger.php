@@ -13,7 +13,7 @@ class AsyncLogger extends AbstractLogger
     protected function _make_log_task($level, $message, array $context = array())
     {
         $task = $this->log($level, $message, $context);
-        yield \await($task);
+        return yield \await($task);
     }
 
     public function emergency($message, array $context = array())

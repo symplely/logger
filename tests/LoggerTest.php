@@ -46,6 +46,8 @@ class LoggerTest extends TestCase
 
     protected function setUp(): void
     {
+        \coroutine_clear();
+
 		if (file_exists(__DIR__ .\DS. $this->testFile)) {
 			unlink(__DIR__ .\DS. $this->testFile);
         }
@@ -67,61 +69,86 @@ class LoggerTest extends TestCase
         $this->logger->close();
     }
 
-	public function testCreateInstance()
+	public function taskCreateInstance()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile);
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile);
 		$this->assertInstanceOf(Logger::class, $log);
 		$this->assertFileExists(__DIR__ .\DS. $this->testFile);
-		$log->close();
+		yield $log->close();
 	}
 
-    public function testThrowsInvalidArgumentExceptionWhenFileCannotBeCreated()
+	public function testCreateInstance()
+	{
+        \coroutine_run($this->taskCreateInstance());
+	}
+
+    public function taskThrowsInvalidArgumentExceptionWhenFileCannotBeCreated()
     {
         $log = new Logger("log-app");
         $this->expectException(InvalidArgumentException::class);
-		$log->streamWriter('/', Logger::DEBUG);
+		yield $log->streamWriter('/', Logger::DEBUG);
+    }
+
+	public function testThrowsInvalidArgumentExceptionWhenFileCannotBeCreated()
+	{
+        \coroutine_run($this->taskThrowsInvalidArgumentExceptionWhenFileCannotBeCreated());
+    }
+
+	public function taskLogWithoutContext()
+	{
+        $log = new Logger("log-app");
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
+		yield $log->log(LogLevel::DEBUG, 'A log message');
+
+		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
+		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG A log message]/', $content);
+		yield $log->close();
     }
 
 	public function testLogWithoutContext()
 	{
-        $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
-		$log->log(LogLevel::DEBUG, 'A log message');
-
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG A log message]/', $content);
-		$log->close();
+        \coroutine_run($this->taskLogWithoutContext());
     }
+
+	public function taskLogLevelInvalidArgumentException()
+	{
+        $log = new Logger("log-app");
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
+        $this->expectException(InvalidArgumentException::class);
+		yield $log->log('LogLevel', 'A log message');
+		yield $log->close();
+	}
 
 	public function testLogLevelInvalidArgumentException()
 	{
+        \coroutine_run($this->taskLogLevelInvalidArgumentException());
+    }
+
+	public function taskLogWithContext()
+	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
-        $this->expectException(InvalidArgumentException::class);
-		$log->log('LogLevel', 'A log message');
-		$log->close();
-	}
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::WARNING, 2);
+		yield $log->log(LogLevel::WARNING, 'Hello {name}', array('name' => 'World'));
+		yield $log->log(LogLevel::WARNING, 'hi {name}', array('name' => 'Planet'));
+
+		$content = \file_get_contents(__DIR__ .\DS. $this->testFile);
+		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hello World]/', $content);
+		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hi Planet]/', $content);
+		yield $log->close();
+    }
 
 	public function testLogWithContext()
 	{
-        $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::WARNING, 2);
-		$log->log(LogLevel::WARNING, 'Hello {name}', array('name' => 'World'));
-		$log->log(LogLevel::WARNING, 'hi {name}', array('name' => 'Planet'));
-
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hello World]/', $content);
-		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hi Planet]/', $content);
-		$log->close();
+        \coroutine_run($this->taskLogWithContext());
     }
 
-	public function testLogEmergencyUniqid()
+	public function taskLogEmergencyUniqid()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::EMERGENCY);
-		$log->addUniqueId();
-		$log->emergency('This is an emergency with {unique_id}');
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::EMERGENCY);
+        $log->addUniqueId();
+		yield \gather($log->emergency('This is an emergency with {unique_id}'));
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
         /**
@@ -150,15 +177,20 @@ class LoggerTest extends TestCase
 
 		$this->assertRegExp(
             "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20."/is", $content);
-		$log->close();
+		yield $log->close();
     }
 
-	public function testLogAlert()
+	public function testLogEmergencyUniqid()
+	{
+        \coroutine_run($this->taskLogEmergencyUniqid());
+    }
+
+	public function taskLogAlert()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::ALERT);
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::ALERT);
 		$log->addPid();
-		$log->alert('This is an alert with {pid}');
+		yield \gather($log->alert('This is an alert with {pid}'));
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
         /**
@@ -186,15 +218,20 @@ class LoggerTest extends TestCase
         $re20='(\\d+)';	# Integer Number 1
 		$this->assertRegExp(
             "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20."/is", $content);
-		$log->close();
+		yield $log->close();
     }
 
-	public function testLogCritical()
+	public function testLogAlert()
+	{
+        \coroutine_run($this->taskLogAlert());
+    }
+
+	public function taskLogCritical()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::CRITICAL);
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::CRITICAL);
 		$log->addTimestamp(true);
-		$log->critical('This is a critical situation happened at {timestamp}');
+		yield \gather($log->critical('This is a critical situation happened at {timestamp}'));
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
         /**
@@ -225,61 +262,84 @@ class LoggerTest extends TestCase
         $re23='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])';	# Float 1
 		$this->assertRegExp(
             "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20.$re21.$re22.$re23."/is", $content);
-		$log->close();
+		yield $log->close();
 	}
 
-	public function testLogError()
+	public function testLogCritical()
+	{
+        \coroutine_run($this->taskLogCritical());
+    }
+
+	public function taskLogError()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::ERROR);
-		$log->error('This is an error');
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::ERROR);
+		yield \gather($log->error('This is an error'));
 
 		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp(
 			'/[{^\[.+\] (\w+) (.+)?} ERROR This is an error]/',
 			$content
 		);
-		$log->close();
+		yield $log->close();
     }
 
-	public function testLogWarning()
+	public function testLogError()
+	{
+        \coroutine_run($this->taskLogError());
+    }
+
+	public function taskLogWarning()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::WARNING);
-		$log->warning('This is a warning');
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::WARNING);
+		yield \gather($log->warning('This is a warning'));
 
 		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp(
 			'/[{^\[.+\] (\w+) (.+)?} WARNING This is a warning]/',
 			$content
 		);
-		$log->close();
+		yield $log->close();
     }
 
-	public function testLogNotice()
+	public function testLogWarning()
+	{
+        \coroutine_run($this->taskLogWarning());
+    }
+
+	public function taskLogNotice()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::NOTICE);
-		$log->notice('This is just a notice');
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::NOTICE);
+		yield \gather($log->notice('This is just a notice'));
 
 		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp(
 			'/[{^\[.+\] (\w+) (.+)?} NOTICE This is just a notice]/',
 			$content
 		);
-		$log->close();
+		yield $log->close();
 	}
 
-	public function testLogInfo()
+	public function testLogNotice()
+	{
+        \coroutine_run($this->taskLogNotice());
+    }
+
+	public function taskLogInfo()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::INFO);
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::INFO);
 		$log->addMemoryUsage('MB');
 		$log->addPhpSapi();
 		$log->addPhpVersion();
-		$log->info('This is an information memory usage {memory_usage}, sapi {php_sapi}, php {php_version}');
+		yield \gather($log->info('This is an information memory usage {memory_usage}, sapi {php_sapi}, php {php_version}'));
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        /**
+         * @see http://txt2re.com/
+         */
         $re1='(.)';	# Any Single Character 1
         $re2='((?:Tues|Thur|Thurs|Sun|Mon|Tue|Wed|Thu|Fri|Sat))';	# Day Of Week 1
         $re3='(.)';	# Any Single Character 2
@@ -294,22 +354,32 @@ class LoggerTest extends TestCase
 			"/".$re1.$re2.$re3.$re4.$re5.$re6.$re8.$re9.$re10.$re11."/is",
 			$content
 		);
-		$log->close();
+		yield $log->close();
 	}
 
-	public function testLogDebug()
+	public function testLogInfo()
+	{
+        \coroutine_run($this->taskLogInfo());
+    }
+
+	public function taskLogDebug()
 	{
         $log = new Logger("log-app");
-		$log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
-		$log->debug('This is a debug message');
+		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
+		yield \gather($log->debug('This is a debug message'));
 
 		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp(
 			'/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/',
 			$content
 		);
-		$log->close();
+		yield $log->close();
 	}
+
+	public function testLogDebug()
+	{
+        \coroutine_run($this->taskLogDebug());
+    }
 
     public function testGetName()
     {

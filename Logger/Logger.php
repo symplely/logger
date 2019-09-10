@@ -129,16 +129,6 @@ class Logger extends AsyncLogger implements LoggerInterface
         }
     }
 
-    /**
-     * Ensure all logging output has been flushed
-     */
-    public function flush()
-    {
-        foreach ($this->handlers as $handler) {
-            yield $handler(self::NULL, null, [], true);
-        }
-    }
-
     public function log($level, $message, array $context = [])
     {
         if (false === $level = \array_search($level, self::$levels, true)) {
@@ -167,7 +157,7 @@ class Logger extends AsyncLogger implements LoggerInterface
     }
 
     /**
-     * Tidy up any resources used by the writer handler.
+     * Shutdown and perform any cleanup actions.
      */
     public function close()
     {
@@ -178,6 +168,16 @@ class Logger extends AsyncLogger implements LoggerInterface
         }
 
         unset(self::$loggers[$this->name]);
+    }
+
+    /**
+     * Ensure all logging output has been flushed
+     */
+    public function flush()
+    {
+        foreach ($this->handlers as $handler) {
+            yield $handler(self::NULL, null, [], true);
+        }
     }
 
     /**
