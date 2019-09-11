@@ -381,17 +381,21 @@ class LoggerTest extends TestCase
         \coroutine_run($this->taskLogDebug());
     }
 
-    public function testGetName()
+    public function taskGetName()
     {
         $logger = new Logger('foo');
         $this->assertEquals('foo', $logger->getName());
         $this->assertInstanceOf(\Psr\Log\LoggerInterface::class, $logger->getLogger('foo'));
         $this->assertInstanceOf(Logger::class, $logger->getLogger('foo'));
-        $logger->close();
-
+        yield $logger->close();
     }
 
-    public function testExceptionInContext()
+    public function testGetName()
+	{
+        \coroutine_run($this->taskGetName());
+    }
+
+    public function taskExceptionInContext()
     {
         $logger = $this->getLogger();
         $exceptionMsg = 'exceptional!';
@@ -399,66 +403,96 @@ class LoggerTest extends TestCase
         $input = 'foo %exception% foo';
         $context = ['exception' => $exception];
         $expected = 'foo ' . $exceptionMsg . ' foo';
-        $logger->emergency($input, $context);
+        yield \gather($logger->emergency($input, $context));
         $this->assertNotEmpty($expected, $this->getOnlyLoggedMessage());
-        $logger->close();
+        yield $logger->close();
     }
 
-    public function testThrowsInvalidArgumentExceptionWhenNull()
+    public function testExceptionInContext()
+	{
+        \coroutine_run($this->taskExceptionInContext());
+    }
+
+    public function taskThrowsInvalidArgumentExceptionWhenNull()
     {
         $logger = $this->getLogger();
         $this->expectException(InvalidArgumentException::class);
         $logger->mailWriter(null);
-        $logger->close();
+        yield $logger->close();
     }
 
-    public function testThrowsInvalidArgumentException()
+    public function testThrowsInvalidArgumentExceptionWhenNull()
+	{
+        \coroutine_run($this->taskThrowsInvalidArgumentExceptionWhenNull());
+    }
+
+    public function taskThrowsInvalidArgumentException()
     {
         $logger = $this->getLogger();
         $this->expectException(InvalidArgumentException::class);
         $logger->mailWriter('foo');
-        $logger->close();
+        yield $logger->close();
     }
 
-    public function testConstructor()
+    public function testThrowsInvalidArgumentException()
+	{
+        \coroutine_run($this->taskThrowsInvalidArgumentException());
+    }
+
+    public function taskConstructor()
     {
         $logger = $this->getLogger();
         $this->expectException(\InvalidArgumentException::class);
         $logger->mailWriter('foo@bar.com', null, ['Cc: some@somewhere.com']);
-        $logger->info('Log me!');
-        $logger->error('Log me too!');
-        $logger->close();
+        yield \gather($logger->info('Log me!'));
+        yield \gather($logger->error('Log me too!'));
+        yield $logger->close();
     }
 
-	public function testErrorLog()
+    public function testConstructor()
+	{
+        \coroutine_run($this->taskConstructor());
+    }
+
+	public function taskErrorLog()
 	{
         \ini_set('error_log', $this->dest);
         $log = new Logger("log-app");
         $log->errorLogWriter();
-		$log->debug('This is a debug message');
+		yield \gather($log->debug('This is a debug message'));
 
 		$content = file_get_contents($this->dest);
 		$this->assertRegExp(
 			'/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/',
 			$content
 		);
-        $log->close();
+        yield $log->close();
 
         if (\file_exists($this->dest)) {
             unlink($this->dest);
         }
     }
 
-	public function testSysLog()
+    public function testErrorLog()
+	{
+        \coroutine_run($this->taskErrorLog());
+    }
+
+	public function taskSysLog()
 	{
         $log = new Logger("log-app");
         $this->assertTrue($log->isLogger('log-app'));
         $log->syslogWriter();
-		$log->debug('This is a debug message');
-		$log->warning('This is a warning message');
+		yield \gather($log->debug('This is a debug message'));
+		yield \gather($log->warning('This is a warning message'));
 
-        $log->close();
+        yield $log->close();
         $this->assertFalse($log->isLogger('log-app'));
+    }
+
+    public function testSysLog()
+	{
+        \coroutine_run($this->taskSysLog());
     }
 
     /**
