@@ -16,7 +16,8 @@ class LoggerTest extends TestCase
 {
     protected $logger;
     protected $logs = [];
-    protected $dest = 'stdout';
+    protected $dest = 'stdout.log';
+
 	/**
 	 * @var string
 	 */
@@ -66,7 +67,6 @@ class LoggerTest extends TestCase
         }
 
         $this->logs = [];
-        $this->logger->close();
     }
 
 	public function taskCreateInstance()
@@ -101,7 +101,7 @@ class LoggerTest extends TestCase
 		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
 		yield $log->log(LogLevel::DEBUG, 'A log message');
 
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG A log message]/', $content);
 		yield $log->close();
     }
@@ -495,20 +495,26 @@ class LoggerTest extends TestCase
         \coroutine_run($this->taskSysLog());
     }
 
-    /**
-     * @dataProvider provideLevelsAndMessages
-     */
-    public function testLogsAtAllLevels($level, $message)
+    public function taskLogsAtAllLevels($level, $message)
     {
         $logger = $this->getLogger();
-        $logger->{$level}($message, array('user' => 'Bob'));
-        $logger->log($level, $message, array('user' => 'Bob'));
+        yield \gather($logger->{$level}($message, array('user' => 'Bob')));
+        yield $logger->log($level, $message, array('user' => 'Bob'));
 
         $expected = array(
             $level.' message of level '.$level.' with context: Bob',
             $level.' message of level '.$level.' with context: Bob',
         );
         $this->assertEquals($expected, $this->getLogs());
+        yield $logger->close();
+    }
+
+    /**
+     * @dataProvider provideLevelsAndMessages
+     */
+    public function testLogsAtAllLevels($level, $message)
+	{
+        \coroutine_run($this->taskLogsAtAllLevels($level, $message));
     }
 
     public function provideLevelsAndMessages()
@@ -525,7 +531,7 @@ class LoggerTest extends TestCase
         );
     }
 
-    public function testThrowsOnInvalidLevel()
+    public function taskThrowsOnInvalidLevel()
     {
         $this->expectException(InvalidArgumentException::class);
         $log = $this->getLogger();
@@ -539,9 +545,15 @@ class LoggerTest extends TestCase
 
         $expected = array('info {Message {nothing} Bob Bar a}');
         $this->assertEquals($expected, $this->getLogs());
+        yield $logger->close();
     }
 
-    public function testObjectCastToString()
+    public function testThrowsOnInvalidLevel()
+	{
+        \coroutine_run($this->taskThrowsOnInvalidLevel());
+    }
+
+    public function taskObjectCastToString()
     {
         if (method_exists($this, 'createPartialMock')) {
             $dummy = $this->createPartialMock(DummyTest::class, array('__toString'));
@@ -558,7 +570,7 @@ class LoggerTest extends TestCase
         $this->assertEquals($expected, $this->getLogs());
     }
 
-    public function testContextCanContainAnything()
+    public function taskContextCanContainAnything()
     {
         $closed = fopen('php://memory', 'r');
         fclose($closed);
@@ -575,23 +587,35 @@ class LoggerTest extends TestCase
             'closed' => $closed,
         );
 
-        $this->getLogger()->warning('Crazy context data', $context);
+        yield \gather($this->getLogger()->warning('Crazy context data', $context));
 
         $expected = array('warning Crazy context data');
         $this->assertEquals($expected, $this->getLogs());
+        yield $this->getLogger()->close();
     }
 
-    public function testContextExceptionKeyCanBeExceptionOrOtherValues()
+    public function testContextCanContainAnything()
+	{
+        \coroutine_run($this->taskContextCanContainAnything());
+    }
+
+    public function taskContextExceptionKeyCanBeExceptionOrOtherValues()
     {
         $logger = $this->getLogger();
-        $logger->warning('Random message', array('exception' => 'oops'));
-        $logger->critical('Uncaught Exception!', array('exception' => new \LogicException('Fail')));
+        yield \gather($logger->warning('Random message', array('exception' => 'oops')));
+        yield \gather($logger->critical('Uncaught Exception!', array('exception' => new \LogicException('Fail'))));
 
         $expected = array(
             'warning Random message',
             'critical Uncaught Exception!'
         );
         $this->assertEquals($expected, $this->getLogs());
+        yield $logger->close();
+    }
+
+    public function testContextExceptionKeyCanBeExceptionOrOtherValues()
+	{
+        \coroutine_run($this->taskContextExceptionKeyCanBeExceptionOrOtherValues());
     }
 
     protected function getOnlyLoggedMessage()

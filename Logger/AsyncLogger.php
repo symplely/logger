@@ -4,6 +4,9 @@ namespace Async\Logger;
 
 use Psr\Log\LogLevel;
 use Psr\Log\AbstractLogger;
+use Async\Coroutine\Kernel;
+use Async\Coroutine\Coroutine;
+use Async\Coroutine\TaskInterface;
 
 class AsyncLogger extends AbstractLogger
 {
@@ -58,5 +61,17 @@ class AsyncLogger extends AbstractLogger
     
     public function log($level, $message, array $context = array())
     {
+    }
+    
+	public static function write($stream, $string)
+	{
+		return new Kernel(
+			function(TaskInterface $task, Coroutine $coroutine) use ($stream, $string) {
+				$coroutine->addWriter($stream, $task);
+				$written = \fwrite($stream, $string);
+                $task->sendValue($written);
+				$coroutine->schedule($task);
+			}
+		);
     }
 }

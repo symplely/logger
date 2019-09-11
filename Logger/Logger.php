@@ -5,7 +5,6 @@ use Psr\Log\LogLevel;
 use Psr\Log\LoggerInterface;
 use Psr\Log\InvalidArgumentException;
 use Async\Logger\AsyncLogger;
-use Async\Coroutine\Kernel;
 
 class Logger extends AsyncLogger implements LoggerInterface
 {
@@ -54,11 +53,16 @@ class Logger extends AsyncLogger implements LoggerInterface
         });
 
         if (isset(self::$loggers[$name])) {
-            yield $this->close();
-            throw new InvalidArgumentException("Logger('$name') already defined");
+            return $this->__constructError($name);
         }
 
         self::$loggers[$name] = $this;
+    }
+
+    public function __constructError($name)
+    {
+        yield $this->close();
+        throw new InvalidArgumentException("Logger('$name') already defined");
     }
 
     public static function getLogger($name): LoggerInterface
@@ -111,11 +115,11 @@ class Logger extends AsyncLogger implements LoggerInterface
                 }
 
                 while (\count($buffer) >= $interval) {
-                    $writer(\array_splice($buffer, 0, $interval));
+                    yield $writer(\array_splice($buffer, 0, $interval));
                 }
 
                 if ($flush && !empty($buffer)) {
-                    $writer(\array_splice($buffer, 0));
+                    yield $writer(\array_splice($buffer, 0));
                 }
             };
         } else {
@@ -124,7 +128,7 @@ class Logger extends AsyncLogger implements LoggerInterface
                     return;
                 }
 
-                $writer($formatter(self::$levels[$level], $message, $context));
+                yield $writer($formatter(self::$levels[$level], $message, $context));
             };
         }
     }
@@ -161,7 +165,7 @@ class Logger extends AsyncLogger implements LoggerInterface
      */
     public function close()
     {
-        yield from $this->flush();
+        yield $this->flush();
 
         foreach ($this->onClose as $command) {
             yield $command();
@@ -261,19 +265,17 @@ class Logger extends AsyncLogger implements LoggerInterface
 
         if ($interval > 1) {
             return $this->setWriter(function (array $messages) use ($stream) {
-                yield Kernel::writeWait($stream);
-                return \fwrite($stream, \implode("\n", $messages) . "\n");
+                return yield AsyncLogger::write($stream, \implode("\n", $messages) . "\n");
             }, $levels, $interval, $formatter);
         } else {
             return $this->setWriter(function ($message) use ($stream) {
-                yield Kernel::writeWait($stream);
-                return \fwrite($stream, "$message\n");
+                return yield AsyncLogger::write($stream, "$message\n");
             }, $levels, 1, $formatter);
         }
     }
 
     public function syslogWriter(
-        $logOpts = \LOG_PID | \LOG_ODELAY,
+        $logOpts = \LOG_PID | \LOG_ODELAY | \LOG_CONS,
         $facility = \LOG_USER,
         $levels = self::ALL,
         callable $formatter = null
