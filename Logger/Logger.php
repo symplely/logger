@@ -181,7 +181,7 @@ class Logger extends AsyncLogger implements LoggerInterface
     }
 
     /**
-     * @todo improve
+     * Replaces placeholders in $string with data from $vars
      */
     private static function interpolate($string, array $vars)
     {
@@ -221,6 +221,8 @@ class Logger extends AsyncLogger implements LoggerInterface
     }
 
     /**
+     * Adds additional context data to the level message
+     *
      * @param string $key
      * @param callable $processor
      */
