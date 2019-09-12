@@ -67,6 +67,7 @@ class LoggerTest extends TestCase
         }
 
         $this->logs = [];
+        $this->logger = null;
     }
 
 	public function taskCreateInstance()
@@ -173,7 +174,7 @@ class LoggerTest extends TestCase
         $re17='((?:[a-z][a-z]+))';	# Word 6
         $re18='(\\s+)';	# White Space 8
         $re19='.*?';	# Non-greedy match on filler
-        $re20='((?:[a-z][a-z]*[0-9]+[a-z0-9]*))';	# Alphanum 1
+        $re20='((?:[a-z][a-z]*[0-9]+[a-z0-9]*))';	# Alphanumeric 1
 
 		$this->assertRegExp(
             "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20."/is", $content);
@@ -331,9 +332,9 @@ class LoggerTest extends TestCase
 	{
         $log = new Logger("log-app");
 		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::INFO);
-		$log->addMemoryUsage('MB');
 		$log->addPhpSapi();
 		$log->addPhpVersion();
+		yield $log->addMemoryUsage('MB');
 		yield \gather($log->info('This is an information memory usage {memory_usage}, sapi {php_sapi}, php {php_version}'));
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
@@ -343,13 +344,13 @@ class LoggerTest extends TestCase
         $re1='(.)';	# Any Single Character 1
         $re2='((?:Tues|Thur|Thurs|Sun|Mon|Tue|Wed|Thu|Fri|Sat))';	# Day Of Week 1
         $re3='(.)';	# Any Single Character 2
-        $re4='(.*?),';	# Command Seperated Values 1
+        $re4='(.*?),';	# Command Separated Values 1
         $re5='(.)';	# Any Single Character 3
-        $re6='(.*?),';	# Command Seperated Values 2
+        $re6='(.*?),';	# Command Separated Values 2
         $re8='(\\s+)';	# White Space 1
         $re9='((?:[a-z][a-z]+))';	# Word 1
         $re10='(\\s+)';	# White Space 2
-        $re11='((?:[0]?[1-9]|[1][012])[-:\\/.](?:(?:[0-2]?\\d{1})|(?:[3][01]{1}))[-:\\/.](?:(?:\\d{1}\\d{1})))(?![\\d])';	# MMDDYY 1
+        $re11='((?:[0]?[1-9]|[1][012])[-:\\/.](?:(?:[0-2]?\\d{1})|(?:[3][01]{1}))[-:\\/.](?:(?:\\d{1}\\d{1})))(?![\\d])';	# MM/DD/YY 1
 		$this->assertRegExp(
 			"/".$re1.$re2.$re3.$re4.$re5.$re6.$re8.$re9.$re10.$re11."/is",
 			$content
@@ -417,7 +418,7 @@ class LoggerTest extends TestCase
     {
         $logger = $this->getLogger();
         $this->expectException(InvalidArgumentException::class);
-        $logger->mailWriter(null);
+        yield $logger->mailWriter(null);
         yield $logger->close();
     }
 
@@ -430,7 +431,7 @@ class LoggerTest extends TestCase
     {
         $logger = $this->getLogger();
         $this->expectException(InvalidArgumentException::class);
-        $logger->mailWriter('foo');
+        yield $logger->mailWriter('foo');
         yield $logger->close();
     }
 
@@ -439,19 +440,19 @@ class LoggerTest extends TestCase
         \coroutine_run($this->taskThrowsInvalidArgumentException());
     }
 
-    public function taskConstructor()
+    public function taskMail()
     {
         $logger = $this->getLogger();
         $this->expectException(\InvalidArgumentException::class);
-        $logger->mailWriter('foo@bar.com', null, ['Cc: some@somewhere.com']);
+        yield $logger->mailWriter('foo@bar.com', null, ['Cc: some@somewhere.com']);
         yield \gather($logger->info('Log me!'));
         yield \gather($logger->error('Log me too!'));
         yield $logger->close();
     }
 
-    public function testConstructor()
+    public function testMail()
 	{
-        \coroutine_run($this->taskConstructor());
+        \coroutine_run($this->taskMail());
     }
 
 	public function taskErrorLog()
@@ -531,26 +532,19 @@ class LoggerTest extends TestCase
         );
     }
 
-    public function taskThrowsOnInvalidLevel()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $log = $this->getLogger();
-        $logger = new Logger("php-app");
-    }
-
-    public function testContextReplacement()
+    public function taskContextReplacement()
     {
         $logger = $this->getLogger();
-        $logger->info('{Message {nothing} {user} {foo.bar} a}', array('user' => 'Bob', 'foo.bar' => 'Bar'));
+        yield \gather($logger->info('{Message {nothing} {user} {foo.bar} a}', array('user' => 'Bob', 'foo.bar' => 'Bar')));
 
         $expected = array('info {Message {nothing} Bob Bar a}');
         $this->assertEquals($expected, $this->getLogs());
         yield $logger->close();
     }
 
-    public function testThrowsOnInvalidLevel()
+    public function testContextReplacement()
 	{
-        \coroutine_run($this->taskThrowsOnInvalidLevel());
+        \coroutine_run($this->taskContextReplacement());
     }
 
     public function taskObjectCastToString()
@@ -564,16 +558,21 @@ class LoggerTest extends TestCase
             ->method('__toString')
             ->will($this->returnValue('DUMMY'));
 
-        $this->getLogger()->warning($dummy);
+        yield \gather($this->getLogger()->warning($dummy));
 
         $expected = array('warning DUMMY');
         $this->assertEquals($expected, $this->getLogs());
     }
 
+    public function testObjectCastToString()
+	{
+        \coroutine_run($this->taskObjectCastToString());
+    }
+
     public function taskContextCanContainAnything()
     {
-        $closed = fopen('php://memory', 'r');
-        fclose($closed);
+        $closed = \fopen('php://memory', 'r');
+        \fclose($closed);
 
         $context = array(
             'bool' => true,
@@ -583,7 +582,7 @@ class LoggerTest extends TestCase
             'float' => 0.5,
             'nested' => array('with object' => new DummyTest),
             'object' => new \DateTime,
-            'resource' => fopen('php://memory', 'r'),
+            'resource' => \fopen('php://memory', 'r'),
             'closed' => $closed,
         );
 

@@ -6,7 +6,6 @@ use Psr\Log\LogLevel;
 use Psr\Log\AbstractLogger;
 use Async\Coroutine\Kernel;
 use Async\Coroutine\Coroutine;
-use Async\Coroutine\TaskInterface;
 
 class AsyncLogger extends AbstractLogger
 {
@@ -15,8 +14,7 @@ class AsyncLogger extends AbstractLogger
      */
     protected function _make_log_task($level, $message, array $context = array())
     {
-        $task = $this->log($level, $message, $context);
-        return yield \await($task);
+        return yield \await($this->log($level, $message, $context));
     }
 
     public function emergency($message, array $context = array())
@@ -58,20 +56,14 @@ class AsyncLogger extends AbstractLogger
     {
         return $this->_make_log_task(LogLevel::DEBUG, $message, $context);
     }
-    
+
     public function log($level, $message, array $context = array())
     {
     }
-    
+
 	public static function write($stream, $string)
 	{
-		return new Kernel(
-			function(TaskInterface $task, Coroutine $coroutine) use ($stream, $string) {
-				$coroutine->addWriter($stream, $task);
-				$written = \fwrite($stream, $string);
-                $task->sendValue($written);
-				$coroutine->schedule($task);
-			}
-		);
+        yield Kernel::writeWait($stream);
+        yield Coroutine::value(\fwrite($stream, $string));
     }
 }
