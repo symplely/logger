@@ -230,7 +230,7 @@ class Logger extends AsyncLogger implements LoggerInterface
      * @param string $key
      * @param callable $processor
      */
-    public function addContextProcessor($key, callable $processor)
+    public function addProcessor($key, callable $processor)
     {
         $this->processors[$key] = $processor;
     }
@@ -374,21 +374,21 @@ class Logger extends AsyncLogger implements LoggerInterface
      */
     public function addUniqueId($prefix = '')
     {
-        return $this->addContextProcessor('unique_id', function () use ($prefix) {
+        return $this->addProcessor('unique_id', function () use ($prefix) {
             return \uniqid($prefix);
         });
     }
 
     public function addPid()
     {
-        return $this->addContextProcessor('pid', function () {
+        return $this->addProcessor('pid', function () {
             return \getmypid();
         });
     }
 
     public function addTimestamp($micro = false)
     {
-        return $this->addContextProcessor('timestamp', function () use ($micro) {
+        return $this->addProcessor('timestamp', function () use ($micro) {
             return $micro ? \microtime(true) : \time();
         });
     }
@@ -400,7 +400,7 @@ class Logger extends AsyncLogger implements LoggerInterface
             throw new \InvalidArgumentException("Unknown memory format: '$format'");
         }
 
-        return $this->addContextProcessor('memory_usage', function () use ($format, $real, $peak) {
+        return $this->addProcessor('memory_usage', function () use ($format, $real, $peak) {
             $memory_usage = $peak ? \memory_get_peak_usage($real) : \memory_get_usage($real);
             switch (\strtoupper($format)) {
                 case 'GB':
@@ -420,14 +420,14 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     public function addPhpSapi()
     {
-        return $this->addContextProcessor('php_sapi', function () {
+        return $this->addProcessor('php_sapi', function () {
             return \php_sapi_name();
         });
     }
 
     public function addPhpVersion()
     {
-        return $this->addContextProcessor('php_version', function () {
+        return $this->addProcessor('php_version', function () {
             return \PHP_VERSION;
         });
     }

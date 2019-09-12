@@ -27,6 +27,9 @@
         }
     ],
     "autoload": {
+        "files": [
+            "Logger/Core.php"
+        ],
       "psr-4": {
           "Async\\Logger\\": "Logger/"}
     },
