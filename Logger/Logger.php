@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types = 1);
+
 namespace Async\Logger;
 
 use Psr\Log\LogLevel;
@@ -49,7 +52,7 @@ class Logger extends AsyncLogger implements LoggerInterface
         $this->name = $name;
 
         $this->defaultFormatter(function ($level, $message) use ($name) {
-            return sprintf("[%s] (%s): %-10s '%s'", date(DATE_RFC822), $name, strtoupper($level), $message);
+            return \sprintf("[%s] (%s): %-10s '%s'", \date(\DATE_RFC822), $name, \strtoupper($level), $message);
         });
 
         if (isset(self::$loggers[$name])) {
@@ -313,7 +316,7 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     public function mailWriter(
         $to,
-        $subject = null,
+        $subject = '',
         array $headers = [],
         $levels = self::ALL,
         $interval = 1,
