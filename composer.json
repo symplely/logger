@@ -3,7 +3,7 @@
     "keywords": ["psr-3", "log", "logging", "async", "coroutine", "yield"],
     "type": "library",
     "homepage": "https://github.com/symplely/logger",
-    "description": "An simple asynchronous psr logger implementation",
+    "description": "An simple asynchronous PSR-3 logger implementation",
     "require": {
         "php": ">7.1",
         "psr/log": "~1.0",

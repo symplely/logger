@@ -85,17 +85,23 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     public function defaultFormatter(callable $formatter)
     {
-        $this->defaultFormatter = $formatter;
+        $this->defaultFormatter = $formatter;        
+
+        return $this;
     }
 
     public function disable($levels)
     {
         $this->enabled &= ~$levels;
+
+        return $this;
     }
 
     public function enable($levels)
     {
         $this->enabled |= $levels;
+
+        return $this;
     }
 
     /**
@@ -236,6 +242,8 @@ class Logger extends AsyncLogger implements LoggerInterface
     public function addProcessor($key, callable $processor)
     {
         $this->processors[$key] = $processor;
+
+        return $this;
     }
 
     /**
