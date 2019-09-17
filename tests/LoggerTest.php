@@ -338,23 +338,7 @@ class LoggerTest extends TestCase
 		yield \gather($log->info('This is an information memory usage {memory_usage}, sapi {php_sapi}, php {php_version}'));
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
-        /**
-         * @see http://txt2re.com/
-         */
-        $re1='(.)';	# Any Single Character 1
-        $re2='((?:Tues|Thur|Thurs|Sun|Mon|Tue|Wed|Thu|Fri|Sat))';	# Day Of Week 1
-        $re3='(.)';	# Any Single Character 2
-        $re4='(.*?),';	# Command Separated Values 1
-        $re5='(.)';	# Any Single Character 3
-        $re6='(.*?),';	# Command Separated Values 2
-        $re8='(\\s+)';	# White Space 1
-        $re9='((?:[a-z][a-z]+))';	# Word 1
-        $re10='(\\s+)';	# White Space 2
-        $re11='((?:[0]?[1-9]|[1][012])[-:\\/.](?:(?:[0-2]?\\d{1})|(?:[3][01]{1}))[-:\\/.](?:(?:\\d{1}\\d{1})))(?![\\d])';	# MM/DD/YY 1
-		$this->assertRegExp(
-			"/".$re1.$re2.$re3.$re4.$re5.$re6.$re8.$re9.$re10.$re11."/is",
-			$content
-		);
+		$this->assertRegExp("/[This is an information memory usage]/is",	$content);
 		yield $log->close();
 	}
 
