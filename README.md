@@ -1,6 +1,6 @@
 # logger
 
-[![Build Status](https://travis-ci.org/symplely/logger.svg?branch=master)](https://travis-ci.org/symplely/logger)[![Build status](https://ci.appveyor.com/api/projects/status/n9rqhj2aw2pe9csv/branch/master?svg=true)](https://ci.appveyor.com/project/techno-express/logger/branch/master)
+[![Build Status](https://travis-ci.org/symplely/logger.svg?branch=master)](https://travis-ci.org/symplely/logger)[![Build status](https://ci.appveyor.com/api/projects/status/n9rqhj2aw2pe9csv/branch/master?svg=true)](https://ci.appveyor.com/project/techno-express/logger/branch/master)[![codecov](https://codecov.io/gh/symplely/logger/branch/master/graph/badge.svg)](https://codecov.io/gh/symplely/logger)[![Codacy Badge](https://api.codacy.com/project/badge/Grade/639d7b9525414cb0abb22ebbe68379b5)](https://www.codacy.com/manual/techno-express/logger?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=symplely/logger&amp;utm_campaign=Badge_Grade)[![Maintainability](https://api.codeclimate.com/v1/badges/7b4b5060e690092dc307/maintainability)](https://codeclimate.com/github/symplely/logger/maintainability)
 
 An simple, fast, asynchronous PSR-3 compatible logger.
 
