@@ -1,5 +1,7 @@
 # logger
 
+[![Build Status](https://travis-ci.org/symplely/logger.svg?branch=master)](https://travis-ci.org/symplely/logger)[![Build status](https://ci.appveyor.com/api/projects/status/n9rqhj2aw2pe9csv/branch/master?svg=true)](https://ci.appveyor.com/project/techno-express/logger/branch/master)
+
 An simple, fast, asynchronous PSR-3 compatible logger.
 
 To have similar functionality as in Python's Async [aiologger](https://github.com/B2W-BIT/aiologger) Package.
