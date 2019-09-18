@@ -15,14 +15,162 @@ To have similar functionality as in Python's Async [aiologger](https://github.co
 * [Contributing](#contributing)
 * [License](#license)
 
-**This package is under development, all `asynchronous` parts has not been fully implemented.**
-
 ## Introduction/Usage
 
 **logger** can be used to create log entries in different formats using multiple backend *writers*.
-Basic usage of **logger** requires both a *writer* and a *logger* instance. A *writer* stores the log entry into a backend, and the *logger* instance consumes the *writer* to perform logging operations.
+Basic usage of **logger** requires both a *writer* and a *logger* instance. A *writer* stores the **log** *entry/message* into a backend, and the *logger* instance consumes the *writer* to perform logging operations.
+
+The **log** *entry/message* contains the information to be logged. The message can consist of a format string and arguments (given as two separate parameters), a string or a report, anf the arguments, a map of key-value list array. These arguments can be accompanied by a report callback an `processor`, using `addProcessor()` method,.
+
+The report callback is a convenience function that an *writer* __formatter__ can use to convert the report to a format string and arguments, or directly to a string. The `defaultFormatter()` method can also use its own conversion function, if no callback is provided, or if a customized formatting is desired.
 
 ## Functions
+
+This **`logger`** package is intended to be used ___asynchronous___, which require the *underlining* package used in, to operate as such. All the following functions should be call within an routine that was launched from `coroutine_run()` function out of our [Coroutine](https://github.com/symplely/coroutine) library.
+
+```php
+/**
+ * Will create or return an global logger instance by name.
+ * If no name supplied, will use calling class name
+ */
+ \logger_instance($name);
+
+/**
+* Closes and clears an global logger instance by name.
+* - This function needs to be prefixed with `yield`
+*/
+yield \logger_shutdown($name);
+```
+
+```php
+/**
+ * Will setup an custom backend `writer`, for the global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_writer($writer, $levels, $interval, $formatter, $name);
+
+/**
+ * Will setup the O.S. syslog as backend `writer`, for the global instance by name
+ */
+\logger_syslog($logOpts, $facility, $levels, $formatter, $name);
+
+/**
+ * Will setup the O.S. error_log as backend `writer`, for the global instance by name
+ */
+\logger_errorlog($type, $levels, $formatter, $name);
+
+/**
+ * Will setup an memory array as backend `writer`, for the global instance by name
+ */
+\logger_array(&$array, $levels, $interval, $formatter, $name);
+
+/**
+ * Will setup an file/stream as backend `writer`, for the global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_stream($stream, $levels, $interval, $formatter, $name);
+
+/**
+ * Will setup to send email as backend `writer`, for the global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_mail($to, $subject, $headers, $levels, $interval, $formatter, $name);
+```
+
+```php
+/**
+ * Will setup and add custom `processor` report callback, for on named `{key}` placeholder,
+ * for the global instance by name
+ */
+\logger_processor($key, $processor, $name);
+
+/**
+ * Will add prefix to unique id to the message to be logged, on `{unique_id}` placeholder,
+ * for the global instance by name
+ */
+\logger_uniqueId($prefix, $name);
+
+/**
+ * Will add an PHP process ID to the message to be logged, on `{pid}` placeholder,
+ * for the global instance by name
+ */
+\logger_pid($name);
+
+/**
+ * Will add timestamp by either microsecond to the message to be logged, on `{timestamp}` placeholder,
+ * for the global instance by name
+ */
+\logger_timestamp($micro, $name);
+
+/**
+ * Will add type of PHP interface to the message to be logged, on `{php_sapi}` placeholder,
+ * for the global instance by name
+ */
+\logger_phpSapi($name);
+
+/**
+ * Will add PHP version to the message to be logged, on `{php_version}` placeholder,
+ * for the global instance by name
+ */
+\logger_phpVersion($name);
+
+/**
+ * Will add memory usage by size[GB|MB|KB] to the message to be logged, on `{memory_usage}` placeholder,
+ * for the global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_memoryUsage($format, $real, $peak, $name);
+```
+
+```php
+/**
+ * Will create new background task to Log an EMERGENCY message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_emergency($message, $context, $name);
+
+/**
+ * Will create new background task to Log an ALERT message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_alert($message, $context, $name);
+
+/**
+ * Will create new background task to Log an CRITICAL message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_critical($message, $context, $name);
+
+/**
+ * Will create new background task to Log an ERROR message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_error($message, $context, $name);
+
+/**
+ * Will create new background task to Log an WARNING message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_warning($message, $context, $name);
+
+/**
+ * Will create new background task to Log an NOTICE message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_notice($message, $context, $name);
+
+/**
+ * Will create new background task to Log an INFO message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_info($message, $context, $name);
+
+/**
+ * Will create new background task to Log an DEBUG message, on global instance by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \log_debug($message, $context, $name);
+```
 
 ## Installation
 
