@@ -70,6 +70,11 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     public static function getLogger($name): LoggerInterface
     {
+        if (empty($name)) {
+            $path = \explode('\\', \get_called_class());
+            $name = \array_pop($path);
+        }
+
         return isset(self::$loggers[$name]) ? self::$loggers[$name] : new self($name);
     }
 
@@ -85,7 +90,7 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     public function defaultFormatter(callable $formatter)
     {
-        $this->defaultFormatter = $formatter;        
+        $this->defaultFormatter = $formatter;
 
         return $this;
     }
@@ -109,7 +114,7 @@ class Logger extends AsyncLogger implements LoggerInterface
      */
     public function setWriter(callable $writer, $levels = self::ALL, $interval = 1, callable $formatter = null)
     {
-        if (!isset($formatter)) {
+        if (empty($formatter)) {
             $formatter = $this->defaultFormatter;
         }
 
@@ -153,14 +158,16 @@ class Logger extends AsyncLogger implements LoggerInterface
             return;
         }
 
-        foreach ($this->processors as $key => $processor) {
-            $context[$key] = $processor($context);
-        }
+        if (isset($context)) {
+            foreach ($this->processors as $key => $processor) {
+                $context[$key] = $processor($context);
+            }
 
-        $message = self::interpolate((string) $message, $context);
+            $message = self::interpolate((string) $message, $context);
 
-        foreach ($this->handlers as $handler) {
-            yield $handler($level, $message, $context);
+            foreach ($this->handlers as $handler) {
+                yield $handler($level, $message, $context);
+            }
         }
     }
 

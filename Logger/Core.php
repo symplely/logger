@@ -16,7 +16,7 @@ if (!\function_exists('logger_instance')) {
         if (!empty($name) || isset($__loggerTag__[$name]))
             $__loggerTag__[$name] = Logger::getLogger($name);
         else
-            $__logger__ = Logger::getLogger(__CLASS__);
+            $__logger__ = Logger::getLogger($name);
 
         return empty($name) ?  $__logger__ : $__loggerTag__[$name];
     }
@@ -34,7 +34,7 @@ if (!\function_exists('logger_instance')) {
     }
 
 	/**
-     * Shutdown, closes and clears an global logger instance by.
+     * Closes and clears an global logger instance by.
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
@@ -48,6 +48,37 @@ if (!\function_exists('logger_instance')) {
             $__loggerTag__[$name] = null;
             unset($GLOBALS['$__loggerTag__'][$name]);
         } else {
+            $__logger__ = null;
+            unset($GLOBALS['__logger__']);
+        }
+    }
+
+	/**
+     * Closes and clears `All` global `logger` instances.
+     *
+	 * - This function needs to be prefixed with `yield`
+	 */
+    function logger_nuke()
+    {
+        global $__logger__, $__loggerTag__;
+
+        if (!empty($__loggerTag__)) {
+            $names = \array_keys($__loggerTag__);
+            foreach($names as $name) {
+                if ($__loggerTag__[$name] instanceof LoggerInterface) {
+                    yield $__loggerTag__[$name]->close();
+                }
+
+                $__loggerTag__[$name] = null;
+                unset($GLOBALS['$__loggerTag__'][$name]);
+            }
+        }
+
+        if (!empty($__logger__)) {
+            if ($__logger__ instanceof LoggerInterface) {
+                yield $__logger__->close();
+            }
+
             $__logger__ = null;
             unset($GLOBALS['__logger__']);
         }
@@ -140,8 +171,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_emergency($message, array $context = array(), ?string $name = null)
+    function log_emergency(string $message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->emergency($message, $context);
     }
 
@@ -152,8 +188,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_alert($message, array $context = array(), ?string $name = null)
+    function log_alert($message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->alert($message, $context);
     }
 
@@ -164,8 +205,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_critical($message, array $context = array(), ?string $name = null)
+    function log_critical(string $message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->critical($message, $context);
     }
 
@@ -176,8 +222,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_error($message, array $context = array(), ?string $name = null)
+    function log_error(string $message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->error($message, $context);
     }
 
@@ -188,8 +239,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_warning($message, array $context = array(), ?string $name = null)
+    function log_warning(string $message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->warning($message, $context);
     }
 
@@ -200,8 +256,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_notice($message, array $context = array(), ?string $name = null)
+    function log_notice(string $message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->notice($message, $context);
     }
 
@@ -212,8 +273,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_info($message, array $context = array(), ?string $name = null)
+    function log_info($message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->info($message, $context);
     }
 
@@ -224,8 +290,13 @@ if (!\function_exists('logger_instance')) {
      *
 	 * - This function needs to be prefixed with `yield`
 	 */
-    function log_debug($message, array $context = array(), ?string $name = null)
+    function log_debug(string $message, $context = [], ?string $name = null)
     {
+        if (\is_string($context) && empty($name)) {
+            $name = $context;
+            $context = [];
+        }
+
         return \logger_instance($name)->debug($message, $context);
     }
 
@@ -280,7 +351,7 @@ if (!\function_exists('logger_instance')) {
      * Adds type of PHP interface to the message to be logged.
      * An concrete context processor on `{php_sapi}` placeholder.
      */
-    function logger_sapi(?string $name = null)
+    function logger_phpSapi(?string $name = null)
     {
         return \logger_instance($name)->addPhpSapi();
     }

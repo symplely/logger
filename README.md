@@ -40,6 +40,12 @@ This **`logger`** package is intended to be used ___asynchronous___, which requi
 * - This function needs to be prefixed with `yield`
 */
 yield \logger_shutdown($name);
+
+/**
+* Closes and clears `All` global logger instances.
+* - This function needs to be prefixed with `yield`
+*/
+yield \logger_nuke();
 ```
 
 ```php
