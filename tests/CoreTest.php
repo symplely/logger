@@ -347,20 +347,6 @@ class CoreTest extends TestCase
         \coroutine_run($this->taskGlobalThrowsInvalidArgumentException());
     }
 
-    public function taskGlobalMail()
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        yield \logger_mail('foo@bar.com', '', ['Cc: some@somewhere.com']);
-        yield \gather(\log_info('Log me!'));
-        yield \gather(\log_error('Log me too!'));
-        yield \logger_shutdown();
-    }
-
-    public function testGlobalMail()
-	{
-        \coroutine_run($this->taskGlobalMail());
-    }
-
 	public function taskGlobalErrorLog()
 	{
         \ini_set('error_log', $this->dest);

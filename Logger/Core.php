@@ -154,7 +154,7 @@ if (!\function_exists('logger_instance')) {
 	 */
     function logger_mail(
         string $to,
-        string $subject = '',
+        $subject = '',
         array $headers = [],
         $levels = Logger::ALL,
         int $interval = 1,
