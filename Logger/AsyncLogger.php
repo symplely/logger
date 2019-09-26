@@ -12,11 +12,37 @@ use Async\Coroutine\Coroutine;
 class AsyncLogger extends AbstractLogger
 {
     /**
+     * For tracking logger tasks id
+     *
+     * @var array
+     */
+    protected $loggerTaskId = [];
+
+    /**
      * Creates an async task for a message if logging is enabled for level.
      */
     protected function _make_log_task($level, $message, array $context = array())
     {
-        return yield \await($this->log($level, $message, $context));
+        $loggerId = yield \await($this->log($level, $message, $context), 'true');
+        $this->loggerTaskId[] = $loggerId;
+        return $loggerId;
+    }
+
+    /**
+     * Wait for all pending logging tasks to commit, then
+     * remove finish logger tasks from current logger tasks list.
+     */
+    public function commit()
+    {
+        if (!empty($this->loggerTaskId) && \is_array($this->loggerTaskId)) {
+            $removeLater = $this->loggerTaskId;
+            yield \gather($this->loggerTaskId);
+            foreach($removeLater as $id) {
+                if (($key = \array_search($id, $this->loggerTaskId, true)) !== false) {
+                    unset($this->loggerTaskId[$key]);
+                }
+            }
+        }
     }
 
     public function emergency($message, array $context = array())

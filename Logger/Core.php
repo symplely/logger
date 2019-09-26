@@ -165,6 +165,16 @@ if (!\function_exists('logger_instance')) {
     }
 
 	/**
+     * Wait for logs to commit and remove finished logs from logging tasks list
+     *
+     * - This function needs to be prefixed with `yield`
+	 */
+    function logger_commit(?string $name = null)
+    {
+        return \logger_instance($name)->commit();
+    }
+
+	/**
      * Logs an EMERGENCY message.
      * Will not pause current task.
      * Will create new background task to complete the `logger` operation.
