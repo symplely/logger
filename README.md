@@ -4,7 +4,7 @@
 
 An simple, fast, asynchronous PSR-3 compatible logger.
 
-To have similar functionality as in Python's Async [aiologger](https://github.com/B2W-BIT/aiologger) Package.
+This `Logger` library is modeling itself to have similar functionality as in Python's Async [aiologger](https://github.com/B2W-BIT/aiologger) Package.
 
 ## Table of Contents
 
@@ -36,10 +36,16 @@ This **`logger`** package is intended to be used ___asynchronous___, which requi
  \logger_instance($name);
 
 /**
-* Closes and clears an global logger instance by name.
-* - This function needs to be prefixed with `yield`
-*/
+ * Closes and clears an global logger instance by name.
+ * - This function needs to be prefixed with `yield`
+ */
 yield \logger_shutdown($name);
+
+/**
+ * Wait for logs to commit and remove finished logs from logging tasks list by name
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_commit($name)
 
 /**
 * Closes and clears `All` global logger instances.
