@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Async\Logger;
 
@@ -120,8 +120,11 @@ class Logger extends AsyncLogger implements LoggerInterface
 
         if ($interval > 1) {
             $this->handlers[] = function (
-                $level, $message, array $context, $flush = false) use ($writer, $formatter, $levels, $interval)
-            {
+                $level,
+                $message,
+                array $context,
+                $flush = false
+            ) use ($writer, $formatter, $levels, $interval) {
                 static $buffer = [];
 
                 if ($level & $levels) {
@@ -271,7 +274,8 @@ class Logger extends AsyncLogger implements LoggerInterface
             if (!\is_resource($stream)) {
                 yield $this->close();
                 throw new InvalidArgumentException(sprintf(
-                    'The stream "%s" cannot be created or opened', $stream
+                    'The stream "%s" cannot be created or opened',
+                    $stream
                 ));
             }
 

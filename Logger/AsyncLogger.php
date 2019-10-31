@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Async\Logger;
 
@@ -37,7 +37,7 @@ class AsyncLogger extends AbstractLogger
         if (!empty($this->loggerTaskId) && \is_array($this->loggerTaskId)) {
             $removeLater = $this->loggerTaskId;
             yield \gather($this->loggerTaskId);
-            foreach($removeLater as $id) {
+            foreach ($removeLater as $id) {
                 if (($key = \array_search($id, $this->loggerTaskId, true)) !== false) {
                     unset($this->loggerTaskId[$key]);
                 }
@@ -86,11 +86,10 @@ class AsyncLogger extends AbstractLogger
     }
 
     public function log($level, $message, array $context = array())
-    {
-    }
+    { }
 
-	public static function write($stream, $string)
-	{
+    public static function write($stream, $string)
+    {
         yield Kernel::writeWait($stream);
         yield Coroutine::value(\fwrite($stream, $string));
     }
