@@ -23,7 +23,7 @@ class AsyncLogger extends AbstractLogger
      */
     protected function _make_log_task($level, $message, array $context = array())
     {
-        $loggerId = yield \await($this->log($level, $message, $context), 'true');
+        $loggerId = yield \await($this->log($level, $message, $context), 'true', Logger::getInstance());
         $this->loggerTaskId[] = $loggerId;
         return $loggerId;
     }
