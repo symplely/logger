@@ -49,8 +49,6 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     private $enabled = self::ALL;
 
-    private $alreadyClosed = false;
-
     private $arrayLogs = [];
 
     public function __construct($name)
@@ -220,9 +218,6 @@ class Logger extends AsyncLogger implements LoggerInterface
      */
     public function close($clearLogs = true)
     {
-        if ($this->alreadyClosed)
-            return $this->arrayLogs;
-
         yield $this->flush();
 
         foreach ($this->onClose as $command) {
@@ -231,7 +226,6 @@ class Logger extends AsyncLogger implements LoggerInterface
 
         unset(self::$loggers[$this->name]);
 
-        $this->alreadyClosed = true;
         $arrayLogs = $this->arrayLogs;
 
         if ($clearLogs)
