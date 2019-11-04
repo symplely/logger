@@ -403,6 +403,7 @@ class LoggerTest extends TestCase
         $logger = $this->getLogger();
         $this->expectException(InvalidArgumentException::class);
         yield $logger->mailWriter('foo');
+        yield $logger->close();
     }
 
     public function testThrowsInvalidArgumentException()
@@ -413,10 +414,11 @@ class LoggerTest extends TestCase
     public function taskMail()
     {
         $logger = $this->getLogger();
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         yield $logger->mailWriter('foo@bar.com', '', ['Cc: some@somewhere.com']);
         yield \gather($logger->info('Log me!'));
         yield \gather($logger->error('Log me too!'));
+        yield $logger->close();
     }
 
     public function testMail()

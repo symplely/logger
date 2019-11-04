@@ -49,6 +49,8 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     private $enabled = self::ALL;
 
+    private $alreadyClosed = false;
+
     private $arrayLogs = [];
 
     public function __construct($name)
@@ -218,6 +220,9 @@ class Logger extends AsyncLogger implements LoggerInterface
      */
     public function close($clearLogs = true)
     {
+        if ($this->alreadyClosed)
+            return $this->arrayLogs;
+
         yield $this->flush();
 
         foreach ($this->onClose as $command) {
@@ -392,8 +397,9 @@ class Logger extends AsyncLogger implements LoggerInterface
             return $this->setWriter(function (array $messages) use ($to, $subject, $headers) {
                 $mailer = @\mail($to, $subject, \implode("\n", $messages), \implode("\r\n", $headers));
                 if (!$mailer) {
+                    $error = \error_get_last()['message'];
                     yield $this->close();
-                    throw new \InvalidArgumentException(\error_get_last()['message']);
+                    throw new InvalidArgumentException((\is_string($error) ? $error : 'Failed to send mail!'));
                 }
 
                 return $mailer;
@@ -402,8 +408,9 @@ class Logger extends AsyncLogger implements LoggerInterface
             return $this->setWriter(function ($message) use ($to, $subject, $headers) {
                 $mailer = @\mail($to, $subject, $message, \implode("\r\n", $headers));
                 if (!$mailer) {
+                    $error = \error_get_last()['message'];
                     yield $this->close();
-                    throw new InvalidArgumentException(\error_get_last()['message']);
+                    throw new InvalidArgumentException((\is_string($error) ? $error : 'Failed to send mail!'));
                 }
 
                 return $mailer;
