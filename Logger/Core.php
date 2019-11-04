@@ -7,18 +7,33 @@ use Psr\Log\LoggerInterface;
 
 if (!\function_exists('logger_instance')) {
     /**
-     * Create/returns an global logger instance by.
+     * Returns an global logger instance by.
      */
-    function logger_instance(?string $name = null)
+    function logger_instance($name = null)
+    {
+        if ($name instanceof LoggerInterface) {
+            return $name;
+        }
+
+        global $__logger__, $__loggerTag__;
+
+        return (empty($name) || !isset($__loggerTag__[$name])) ? $__logger__ : $__loggerTag__[$name];
+    }
+
+    /**
+     * Create, and return an global logger instance by.
+     */
+    function logger_create(?string $name = null): LoggerInterface
     {
         global $__logger__, $__loggerTag__;
 
-        if (!empty($name) || isset($__loggerTag__[$name]))
+        if (!empty($name)) {
             $__loggerTag__[$name] = Logger::getLogger($name);
-        else
+        } else {
             $__logger__ = Logger::getLogger($name);
+        }
 
-        return empty($name) ?  $__logger__ : $__loggerTag__[$name];
+        return empty($name) ? $__logger__ : $__loggerTag__[$name];
     }
 
     /**
@@ -28,25 +43,58 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function logger($level, $message, array $context = [], ?string $name = null)
+    function logger($level, $message, array $context = [], $name = null)
     {
-        return \logger_instance($name)->log($level, $message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->log($level, $message, $context);
     }
 
     /**
-     * Closes and clears an global logger instance by.
+     * Commit, close, and clears out an global logger instance by.
+     *
+     * @param string $name - logger name
+     * @param bool $clearLogs - should `arrayWriter` logs be cleared?
      *
      * - This function needs to be prefixed with `yield`
      */
-    function logger_shutdown(?string $name = null)
+    function logger_close($name = null, $clearLogs = true)
+    {
+        $records = [];
+
+        yield \logger_commit($name);
+
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            $records = yield $logger->close($clearLogs);
+
+        \logger_clear($name);
+
+        return $records;
+    }
+
+    /**
+     * Wait for logs to commit and remove finished logs from logging tasks list
+     *
+     * - This function needs to be prefixed with `yield`
+     */
+    function logger_commit($name = null)
+    {
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->commit();
+    }
+
+    /**
+     * Clear out an global logger instance by.
+     */
+    function logger_clear($name = null)
     {
         global $__logger__, $__loggerTag__;
 
-        yield \logger_instance($name)->close();
-
         if (!empty($name) || isset($__loggerTag__[$name])) {
             $__loggerTag__[$name] = null;
-            unset($GLOBALS['$__loggerTag__'][$name]);
+            unset($GLOBALS['__loggerTag__'][$name]);
         } else {
             $__logger__ = null;
             unset($GLOBALS['__logger__']);
@@ -54,34 +102,37 @@ if (!\function_exists('logger_instance')) {
     }
 
     /**
-     * Closes and clears `All` global `logger` instances.
+     * Shutdown Logger.
+     * Commit, close and clear out `All` global `logger` instances.
      *
      * - This function needs to be prefixed with `yield`
      */
-    function logger_nuke()
+    function logger_shutdown()
     {
         global $__logger__, $__loggerTag__;
 
         if (!empty($__loggerTag__)) {
             $names = \array_keys($__loggerTag__);
             foreach ($names as $name) {
-                if ($__loggerTag__[$name] instanceof LoggerInterface) {
-                    yield $__loggerTag__[$name]->close();
-                }
-
-                $__loggerTag__[$name] = null;
-                unset($GLOBALS['$__loggerTag__'][$name]);
+                yield \logger_close($name);
             }
         }
 
         if (!empty($__logger__)) {
-            if ($__logger__ instanceof LoggerInterface) {
-                yield $__logger__->close();
-            }
-
-            $__logger__ = null;
-            unset($GLOBALS['__logger__']);
+            yield \logger_close();
         }
+    }
+
+    /**
+     * Returns the array of `arrayWriter()` Logs.
+     */
+    function logger_arrayLogs($name = null): array
+    {
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->getLogs();
+
+        return [];
     }
 
     /**
@@ -94,9 +145,11 @@ if (!\function_exists('logger_instance')) {
         $levels = Logger::ALL,
         int $interval = 1,
         callable $formatter = null,
-        ?string $name = null
+        $name = null
     ) {
-        return \logger_instance($name)->setWriter($writer, $levels, $interval, $formatter);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->setWriter($writer, $levels, $interval, $formatter);
     }
 
     /**
@@ -107,30 +160,35 @@ if (!\function_exists('logger_instance')) {
         $facility = \LOG_USER,
         $levels = Logger::ALL,
         callable $formatter = null,
-        ?string $name = null
+        $name = null
     ) {
-        return \logger_instance($name)->syslogWriter($logOpts, $facility, $levels, $formatter);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->syslogWriter($logOpts, $facility, $levels, $formatter);
     }
 
     /**
      * Creates/uses O.S. error_log as backend `writer`
      */
-    function logger_errorlog($type = 0, $levels = Logger::ALL, callable $formatter = null, ?string $name = null)
+    function logger_errorlog($type = 0, $levels = Logger::ALL, callable $formatter = null, $name = null)
     {
-        return \logger_instance($name)->errorLogWriter($type, $levels, $formatter);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->errorLogWriter($type, $levels, $formatter);
     }
 
     /**
      * Creates/uses an memory array as backend `writer`
      */
     function logger_array(
-        array &$array = null,
         $levels = Logger::ALL,
         int $interval = 1,
         callable $formatter = null,
-        ?string $name = null
+        $name = null
     ) {
-        return \logger_instance($name)->arrayWriter($array, $levels, $interval, $formatter);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->arrayWriter($levels, $interval, $formatter);
     }
 
     /**
@@ -143,9 +201,11 @@ if (!\function_exists('logger_instance')) {
         $levels = Logger::ALL,
         int $interval = 1,
         callable $formatter = null,
-        ?string $name = null
+        $name = null
     ) {
-        return \logger_instance($name)->streamWriter($stream, $levels, $interval, $formatter);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->streamWriter($stream, $levels, $interval, $formatter);
     }
 
     /**
@@ -160,19 +220,11 @@ if (!\function_exists('logger_instance')) {
         $levels = Logger::ALL,
         int $interval = 1,
         callable $formatter = null,
-        ?string $name = null
+        $name = null
     ) {
-        return \logger_instance($name)->mailWriter($to, $subject, $headers, $levels, $interval, $formatter);
-    }
-
-    /**
-     * Wait for logs to commit and remove finished logs from logging tasks list
-     *
-     * - This function needs to be prefixed with `yield`
-     */
-    function logger_commit(?string $name = null)
-    {
-        return \logger_instance($name)->commit();
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->mailWriter($to, $subject, $headers, $levels, $interval, $formatter);
     }
 
     /**
@@ -182,14 +234,16 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_emergency(string $message, $context = [], ?string $name = null)
+    function log_emergency(string $message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->emergency($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->emergency($message, $context);
     }
 
     /**
@@ -199,14 +253,16 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_alert($message, $context = [], ?string $name = null)
+    function log_alert($message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->alert($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->alert($message, $context);
     }
 
     /**
@@ -216,14 +272,16 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_critical(string $message, $context = [], ?string $name = null)
+    function log_critical(string $message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->critical($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->critical($message, $context);
     }
 
     /**
@@ -233,14 +291,16 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_error(string $message, $context = [], ?string $name = null)
+    function log_error(string $message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->error($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->error($message, $context);
     }
 
     /**
@@ -250,14 +310,16 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_warning(string $message, $context = [], ?string $name = null)
+    function log_warning(string $message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->warning($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->warning($message, $context);
     }
 
     /**
@@ -267,14 +329,16 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_notice(string $message, $context = [], ?string $name = null)
+    function log_notice(string $message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->notice($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->notice($message, $context);
     }
 
     /**
@@ -284,14 +348,16 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_info($message, $context = [], ?string $name = null)
+    function log_info($message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->info($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->info($message, $context);
     }
 
     /**
@@ -301,50 +367,60 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function log_debug(string $message, $context = [], ?string $name = null)
+    function log_debug(string $message, $context = [], $name = null)
     {
         if (\is_string($context) && empty($name)) {
             $name = $context;
             $context = [];
         }
 
-        return \logger_instance($name)->debug($message, $context);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->debug($message, $context);
     }
 
     /**
      * Add custom context data to the message to be logged.
      * Make an context processor on the `{`$key`}` placeholder.
      */
-    function logger_processor($key, callable $processor, ?string $name = null)
+    function logger_processor($key, callable $processor, $name = null)
     {
-        return \logger_instance($name)->addProcessor($key, $processor);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->addProcessor($key, $processor);
     }
 
     /**
      * Adds Unique Id to the message to be logged.
      * An concrete context processor on `{unique_id}` placeholder.
      */
-    function logger_uniqueId($prefix = '', ?string $name = null)
+    function logger_uniqueId($prefix = '', $name = null)
     {
-        return \logger_instance($name)->addUniqueId($prefix);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->addUniqueId($prefix);
     }
 
     /**
      * Adds PHP's process ID to the message to be logged.
      * An concrete context processor on `{pid}` placeholder.
      */
-    function logger_pid(?string $name = null)
+    function logger_pid($name = null)
     {
-        return \logger_instance($name)->addPid();
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->addPid();
     }
 
     /**
      * Adds timestamp to the message to be logged.
      * An concrete context processor on `{timestamp}` placeholder.
      */
-    function logger_timestamp($micro = false, ?string $name = null)
+    function logger_timestamp($micro = false, $name = null)
     {
-        return \logger_instance($name)->addTimestamp($micro);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->addTimestamp($micro);
     }
 
     /**
@@ -353,26 +429,32 @@ if (!\function_exists('logger_instance')) {
      *
      * - This function needs to be prefixed with `yield`
      */
-    function logger_memoryUsage($format = null, $real = false, $peak = false, ?string $name = null)
+    function logger_memoryUsage($format = null, $real = false, $peak = false, $name = null)
     {
-        return \logger_instance($name)->addMemoryUsage($format, $real, $peak);
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->addMemoryUsage($format, $real, $peak);
     }
 
     /**
      * Adds type of PHP interface to the message to be logged.
      * An concrete context processor on `{php_sapi}` placeholder.
      */
-    function logger_phpSapi(?string $name = null)
+    function logger_phpSapi($name = null)
     {
-        return \logger_instance($name)->addPhpSapi();
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->addPhpSapi();
     }
 
     /**
      * Adds PHP version to the message to be logged.
      * An concrete context processor on `{php_version}` placeholder.
      */
-    function logger_phpVersion(?string $name = null)
+    function logger_phpVersion($name = null)
     {
-        return \logger_instance($name)->addPhpVersion();
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface)
+            return $logger->addPhpVersion();
     }
 }

@@ -8,23 +8,8 @@ use PHPUnit\Framework\TestCase;
 
 class CoreTest extends TestCase
 {
-    protected $logs = [];
     protected $dest = 'stdout2.log';
 	private $testFile = 'logger-test2.log';
-
-    /**
-     * This must return the log messages in order.
-     *
-     * The simple formatting of the messages is: "<LOG LEVEL> <MESSAGE>".
-     *
-     * Example ->error('Foo') would yield "error Foo".
-     *
-     * @return string[]
-     */
-    public function getLogs()
-    {
-        return $this->logs;
-    }
 
     protected function setUp(): void
     {
@@ -36,13 +21,11 @@ class CoreTest extends TestCase
 		if (\file_exists(__DIR__ .\DS. $this->testFile)) {
 			unlink(__DIR__ .\DS. $this->testFile);
         }
-
-        $this->logs = [];
     }
 
-	public function taskGlobalInstance()
+	public function taskGlobalCreate()
 	{
-        $log = \logger_instance();
+        $log = \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile);
 		$this->assertInstanceOf(Logger::class, $log);
 		$this->assertSame($log, \logger_instance());
@@ -50,20 +33,20 @@ class CoreTest extends TestCase
         yield \logger_shutdown();
 	}
 
-	public function testGlobalInstance()
+	public function testGlobalCreate()
 	{
-        \coroutine_run($this->taskGlobalInstance());
+        \coroutine_run($this->taskGlobalCreate());
 	}
 
 	public function taskGlobalLogWithoutContext()
 	{
-        \logger_instance("log-app");
+        \logger_create("log-app");
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::DEBUG, 1, null, "log-app");
 		yield \logger(LogLevel::DEBUG, 'A log message', [], "log-app");
 
         $content = \file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG A log message]/', $content);
-		yield \logger_nuke();
+		yield \logger_shutdown();
     }
 
 	public function testGlobalLogWithoutContext()
@@ -73,6 +56,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogWithContext()
 	{
+        \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::WARNING, 2);
 		yield \logger(LogLevel::WARNING, 'Hello {name}', array('name' => 'World'));
 		yield \logger(LogLevel::WARNING, 'hi {name}', array('name' => 'Planet'));
@@ -80,7 +64,7 @@ class CoreTest extends TestCase
 		$content = \file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hello World]/', $content);
 		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hi Planet]/', $content);
-        yield \logger_nuke();
+        yield \logger_shutdown();
     }
 
 	public function testGlobalLogWithContext()
@@ -90,6 +74,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogEmergencyUniqid()
 	{
+        \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::EMERGENCY);
         \logger_uniqueId();
 		yield \gather(\log_emergency('This is an emergency with {unique_id}'));
@@ -121,7 +106,7 @@ class CoreTest extends TestCase
 
 		$this->assertRegExp(
             "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20."/is", $content);
-        yield \logger_shutdown();
+        yield \logger_close();
     }
 
 	public function testGlobalLogEmergencyUniqid()
@@ -131,6 +116,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogAlert()
 	{
+        \logger_create("log-app");
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::ALERT, 1, null, "log-app");
 		\logger_pid("log-app");
 		yield \gather(\log_alert('This is an alert with {pid}', "log-app"));
@@ -161,7 +147,7 @@ class CoreTest extends TestCase
         $re20='(\\d+)';	# Integer Number 1
 		$this->assertRegExp(
             "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20."/is", $content);
-		yield \logger_shutdown("log-app");
+		yield \logger_close("log-app");
     }
 
 	public function testGlobalLogAlert()
@@ -171,6 +157,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogCritical()
 	{
+        \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::CRITICAL);
 		\logger_timestamp(true);
 		yield \gather(\log_critical('This is a critical situation happened at {timestamp}'));
@@ -204,7 +191,7 @@ class CoreTest extends TestCase
         $re23='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])';	# Float 1
 		$this->assertRegExp(
             "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20.$re21.$re22.$re23."/is", $content);
-		yield logger_shutdown();
+		yield logger_close();
 	}
 
 	public function testGlobalLogCritical()
@@ -214,6 +201,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogError()
 	{
+        \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::ERROR);
 		yield \gather(\log_error('This is an error'));
 
@@ -222,7 +210,7 @@ class CoreTest extends TestCase
 			'/[{^\[.+\] (\w+) (.+)?} ERROR This is an error]/',
 			$content
 		);
-		yield \logger_shutdown();
+		yield \logger_close();
     }
 
 	public function testGlobalLogError()
@@ -232,6 +220,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogWarning()
 	{
+        \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::WARNING);
 		yield \gather(\log_warning('This is a warning'));
 
@@ -240,7 +229,7 @@ class CoreTest extends TestCase
 			'/[{^\[.+\] (\w+) (.+)?} WARNING This is a warning]/',
 			$content
 		);
-		yield \logger_shutdown();
+		yield \logger_close();
     }
 
 	public function testGlobalLogWarning()
@@ -250,6 +239,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogNotice()
 	{
+        \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::NOTICE);
 		yield \gather(\log_notice('This is just a notice'));
 
@@ -258,7 +248,7 @@ class CoreTest extends TestCase
 			'/[{^\[.+\] (\w+) (.+)?} NOTICE This is just a notice]/',
 			$content
 		);
-		yield \logger_shutdown();
+		yield \logger_close();
 	}
 
 	public function testGlobalLogNotice()
@@ -268,6 +258,7 @@ class CoreTest extends TestCase
 
 	public function taskGlobalLogInfo()
 	{
+        \logger_create();
 		yield \logger_stream(__DIR__ .\DS. $this->testFile, Logger::INFO);
 		\logger_phpSapi();
 		\logger_phpVersion();
@@ -276,7 +267,7 @@ class CoreTest extends TestCase
 
         $content = file_get_contents(__DIR__ .\DS. $this->testFile);
 		$this->assertRegExp("/[This is an information memory usage]/is",	$content);
-		yield \logger_shutdown();
+		yield \logger_close();
 	}
 
 	public function testGlobalLogInfo()
@@ -284,7 +275,7 @@ class CoreTest extends TestCase
         \coroutine_run($this->taskGlobalLogInfo());
     }
 
-	public function taskGlobalLogDebug()
+	public function taskLogDebug()
 	{
         $log = new Logger("log-app");
 		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
@@ -298,14 +289,15 @@ class CoreTest extends TestCase
 		yield $log->close();
 	}
 
-	public function testGlobalLogDebug()
+	public function testLogDebug()
 	{
-        \coroutine_run($this->taskGlobalLogDebug());
+        \coroutine_run($this->taskLogDebug());
     }
 
     public function taskGlobalExceptionInContext()
     {
-        \logger_array($this->logs, Logger::ALL, 1, function ($level, $message) {
+        $logger = \logger_create();
+        \logger_array(Logger::ALL, 1, function ($level, $message) {
             return "$level $message";
         });
         $exceptionMsg = 'exceptional!';
@@ -314,8 +306,8 @@ class CoreTest extends TestCase
         $context = ['exception' => $exception];
         $expected = 'foo ' . $exceptionMsg . ' foo';
         yield \gather(\log_emergency($input, $context));
-        $this->assertNotEmpty($expected, $this->getOnlyLoggedMessage());
-        yield \logger_shutdown();
+        $this->assertNotEmpty($expected, $this->getOnlyLoggedMessage($logger));
+        yield \logger_close();
     }
 
     public function testGlobalExceptionInContext()
@@ -325,9 +317,10 @@ class CoreTest extends TestCase
 
     public function taskGlobalThrowsInvalidArgumentExceptionWhenNull()
     {
+        \logger_create();
         $this->expectException(InvalidArgumentException::class);
         yield \logger_mail('');
-        yield \logger_shutdown();
+        yield \logger_close();
     }
 
     public function testGlobalThrowsInvalidArgumentExceptionWhenNull()
@@ -337,9 +330,10 @@ class CoreTest extends TestCase
 
     public function taskGlobalThrowsInvalidArgumentException()
     {
+        \logger_create();
         $this->expectException(InvalidArgumentException::class);
         yield \logger_mail('foo');
-        yield \logger_shutdown();
+        yield \logger_close();
     }
 
     public function testGlobalThrowsInvalidArgumentException()
@@ -349,12 +343,13 @@ class CoreTest extends TestCase
 
 	public function taskGlobalErrorLog()
 	{
+        \logger_create();
         \ini_set('error_log', $this->dest);
         \logger_errorLog();
         yield \gather(\log_debug('This is a debug message'));
 		$content = \file_get_contents($this->dest);
 		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/', $content	);
-        yield \logger_shutdown();
+        yield \logger_close();
 
         if (\file_exists($this->dest)) {
             unlink($this->dest);
@@ -368,14 +363,16 @@ class CoreTest extends TestCase
 
     public function taskGlobalContextReplacement()
     {
-        \logger_array($this->logs, Logger::ALL, 1, function ($level, $message) {
+        $logger = \logger_create();
+        \logger_array(Logger::ALL, 1, function ($level, $message) {
             return "$level $message";
         });
         yield \gather(\log_info('{Message {nothing} {user} {foo.bar} a}', array('user' => 'Bob', 'foo.bar' => 'Bar')));
 
         $expected = array('info {Message {nothing} Bob Bar a}');
-        $this->assertEquals($expected, $this->getLogs());
-        yield \logger_shutdown();
+        $this->assertEquals($expected, $logger->getLogs());
+        $logger->resetLogs();
+        yield \logger_close();
     }
 
     public function testGlobalContextReplacement()
@@ -385,7 +382,8 @@ class CoreTest extends TestCase
 
     public function taskGlobalObjectCastToString()
     {
-        \logger_array($this->logs, Logger::ALL, 1, function ($level, $message) {
+        $logger = \logger_create();
+        \logger_array(Logger::ALL, 1, function ($level, $message) {
             return "$level $message";
         });
         if (method_exists($this, 'createPartialMock')) {
@@ -400,7 +398,8 @@ class CoreTest extends TestCase
         yield \gather(\log_warning($dummy));
 
         $expected = array('warning DUMMY');
-        $this->assertEquals($expected, $this->getLogs());
+        $this->assertEquals($expected, $logger->getLogs());
+        yield \logger_close();
     }
 
     public function testGlobalObjectCastToString()
@@ -410,7 +409,8 @@ class CoreTest extends TestCase
 
     public function taskGlobalContextCanContainAnything()
     {
-        \logger_array($this->logs, Logger::ALL, 1, function ($level, $message) {
+        $logger = \logger_create();
+        \logger_array(Logger::ALL, 1, function ($level, $message) {
             return "$level $message";
         });
 
@@ -432,8 +432,8 @@ class CoreTest extends TestCase
         yield \gather(\log_warning('Crazy context data', $context));
 
         $expected = array('warning Crazy context data');
-        $this->assertEquals($expected, $this->getLogs());
-        yield \logger_shutdown();
+        $this->assertEquals($expected, $logger->getLogs());
+        yield \logger_close();
     }
 
     public function testGlobalContextCanContainAnything()
@@ -443,7 +443,8 @@ class CoreTest extends TestCase
 
     public function taskGlobalContextExceptionKeyCanBeExceptionOrOtherValues()
     {
-        \logger_array($this->logs, Logger::ALL, 1, function ($level, $message) {
+        $logger = \logger_create();
+        \logger_array(Logger::ALL, 1, function ($level, $message) {
             return "$level $message";
         });
         yield \gather(\log_warning('Random message', array('exception' => 'oops')));
@@ -453,8 +454,8 @@ class CoreTest extends TestCase
             'warning Random message',
             'critical Uncaught Exception!'
         );
-        $this->assertEquals($expected, $this->getLogs());
-        yield \logger_shutdown();
+        $this->assertEquals($expected, $logger->getLogs());
+        yield \logger_close();
     }
 
     public function testGlobalContextExceptionKeyCanBeExceptionOrOtherValues()
@@ -462,9 +463,9 @@ class CoreTest extends TestCase
         \coroutine_run($this->taskGlobalContextExceptionKeyCanBeExceptionOrOtherValues());
     }
 
-    protected function getOnlyLoggedMessage()
+    protected function getOnlyLoggedMessage($logger)
     {
-        $loggedMessages = $this->getLogs();
+        $loggedMessages = $logger->getLogs();
         $this->assertCount(1, $loggedMessages);
         $loggedMessage = reset($loggedMessages);
         return $loggedMessage;

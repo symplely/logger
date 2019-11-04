@@ -30,16 +30,30 @@ This **`logger`** package is intended to be used ___asynchronous___, which requi
 
 ```php
 /**
- * Will create or return an global logger instance by name.
+ * Will create or return an global logger instance by tag name.
+ * If no name supplied, will use calling class name
+ */
+ \logger_create($name);
+
+/**
+ * Return an global logger instance by name.
  * If no name supplied, will use calling class name
  */
  \logger_instance($name);
 
 /**
- * Closes and clears an global logger instance by name.
+ * Close, and clears out an global logger instance by name.
+ * Optionally, clear arrayWriter logs.
  * - This function needs to be prefixed with `yield`
  */
-yield \logger_shutdown($name);
+yield \logger_close($name, $clearLogs);
+
+/**
+ * Shutdown Logger.
+ * Commit, close, and clears out ALL global logger instances.
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_shutdown();
 
 /**
  * Wait for logs to commit and remove finished logs from logging tasks list by name
@@ -48,42 +62,42 @@ yield \logger_shutdown($name);
 yield \logger_commit($name)
 
 /**
-* Closes and clears `All` global logger instances.
-* - This function needs to be prefixed with `yield`
-*/
-yield \logger_nuke();
+ * Returns the array of `arrayWriter()` Logs.
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_arrayLogs($name)
 ```
 
 ```php
 /**
- * Will setup an custom backend `writer`, for the global instance by name
+ * Will setup an custom backend `writer`, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \logger_writer($writer, $levels, $interval, $formatter, $name);
 
 /**
- * Will setup the O.S. syslog as backend `writer`, for the global instance by name
+ * Will setup the O.S. syslog as backend `writer`, optionally by name
  */
 \logger_syslog($logOpts, $facility, $levels, $formatter, $name);
 
 /**
- * Will setup the O.S. error_log as backend `writer`, for the global instance by name
+ * Will setup the O.S. error_log as backend `writer`, optionally by name
  */
 \logger_errorlog($type, $levels, $formatter, $name);
 
 /**
- * Will setup an memory array as backend `writer`, for the global instance by name
+ * Will setup an memory array as backend `writer`, optionally by name
  */
-\logger_array(&$array, $levels, $interval, $formatter, $name);
+\logger_array($levels, $interval, $formatter, $name);
 
 /**
- * Will setup an file/stream as backend `writer`, for the global instance by name
+ * Will setup an file/stream as backend `writer`, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \logger_stream($stream, $levels, $interval, $formatter, $name);
 
 /**
- * Will setup to send email as backend `writer`, for the global instance by name
+ * Will setup to send email as backend `writer`, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \logger_mail($to, $subject, $headers, $levels, $interval, $formatter, $name);
@@ -136,49 +150,49 @@ yield \logger_memoryUsage($format, $real, $peak, $name);
 
 ```php
 /**
- * Will create new background task to Log an EMERGENCY message, on global instance by name
+ * Will create new background task to Log an EMERGENCY message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_emergency($message, $context, $name);
 
 /**
- * Will create new background task to Log an ALERT message, on global instance by name
+ * Will create new background task to Log an ALERT message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_alert($message, $context, $name);
 
 /**
- * Will create new background task to Log an CRITICAL message, on global instance by name
+ * Will create new background task to Log an CRITICAL message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_critical($message, $context, $name);
 
 /**
- * Will create new background task to Log an ERROR message, on global instance by name
+ * Will create new background task to Log an ERROR message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_error($message, $context, $name);
 
 /**
- * Will create new background task to Log an WARNING message, on global instance by name
+ * Will create new background task to Log an WARNING message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_warning($message, $context, $name);
 
 /**
- * Will create new background task to Log an NOTICE message, on global instance by name
+ * Will create new background task to Log an NOTICE message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_notice($message, $context, $name);
 
 /**
- * Will create new background task to Log an INFO message, on global instance by name
+ * Will create new background task to Log an INFO message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_info($message, $context, $name);
 
 /**
- * Will create new background task to Log an DEBUG message, on global instance by name
+ * Will create new background task to Log an DEBUG message, optionally by name
  * - This function needs to be prefixed with `yield`
  */
 yield \log_debug($message, $context, $name);
@@ -224,8 +238,7 @@ $logger->errorLogWriter($errorType = 0,
 $logger->syslogWriter($logOpts = \LOG_PID | \LOG_ODELAY | \LOG_CONS,
     $facility = \LOG_USER, $levels = Logger::ALL, callable $formatter = null);
 
-$logger->arrayWriter(array &$array = null,
-    $levels = Logger::ALL, $interval = 1, callable $formatter = null);
+$logger->arrayWriter($levels = Logger::ALL, $interval = 1, callable $formatter = null);
 ```
 
 You can change default formatting:

@@ -15,7 +15,6 @@ use PHPUnit\Framework\TestCase;
 class LoggerTest extends TestCase
 {
     protected $logger;
-    protected $logs = [];
     protected $dest = 'stdout.log';
 
 	/**
@@ -42,7 +41,7 @@ class LoggerTest extends TestCase
      */
     public function getLogs()
     {
-        return $this->logs;
+        return $this->logger->getLogs();
     }
 
     protected function setUp(): void
@@ -55,7 +54,7 @@ class LoggerTest extends TestCase
 
         $this->logger = new Logger("php-app");
 
-        $this->logger->arrayWriter($this->logs, Logger::ALL, 1, function ($level, $message) {
+        $this->logger->arrayWriter(Logger::ALL, 1, function ($level, $message) {
             return "$level $message";
         });
     }
@@ -66,7 +65,7 @@ class LoggerTest extends TestCase
 			unlink(__DIR__ .\DS. $this->testFile);
         }
 
-        $this->logs = [];
+        $this->logger->resetLogs();
         $this->logger = null;
     }
 
@@ -83,18 +82,6 @@ class LoggerTest extends TestCase
 	{
         \coroutine_run($this->taskCreateInstance());
 	}
-
-    public function taskThrowsInvalidArgumentExceptionWhenFileCannotBeCreated()
-    {
-        $log = new Logger("log-app");
-        $this->expectException(InvalidArgumentException::class);
-		yield $log->streamWriter('/', Logger::DEBUG);
-    }
-
-	public function testThrowsInvalidArgumentExceptionWhenFileCannotBeCreated()
-	{
-        \coroutine_run($this->taskThrowsInvalidArgumentExceptionWhenFileCannotBeCreated());
-    }
 
 	public function taskLogWithoutContext()
 	{

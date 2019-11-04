@@ -49,6 +49,10 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     private $enabled = self::ALL;
 
+    private $alreadyClosed = false;
+
+    private $arrayLogs = [];
+
     public function __construct($name)
     {
         $this->name = $name;
@@ -70,6 +74,25 @@ class Logger extends AsyncLogger implements LoggerInterface
     {
         yield $this->close();
         throw new InvalidArgumentException("Logger('$name') already defined");
+    }
+
+    /**
+     * Returns the array of `arrayWriter()` Logs.
+     * This will return the log messages in order.
+     *
+     * @return array
+     */
+    public function getLogs(): array
+    {
+        return $this->arrayLogs;
+    }
+
+    /**
+     * Clear the `arrayWriter()` Logs.
+     */
+    public function resetLogs()
+    {
+        $this->arrayLogs = [];
     }
 
     public static function getLogger($name): LoggerInterface
@@ -189,10 +212,17 @@ class Logger extends AsyncLogger implements LoggerInterface
     }
 
     /**
-     * Shutdown and perform any cleanup actions.
+     * Close and perform any cleanup actions.
+     *
+     * @param bool $clearLogs - should `arrayWriter` logs be cleared?
+     *
+     * @return array - the logs of `arrayWriter()`
      */
-    public function close()
+    public function close($clearLogs = true)
     {
+        if ($this->alreadyClosed)
+            return $this->arrayLogs;
+
         yield $this->flush();
 
         foreach ($this->onClose as $command) {
@@ -200,6 +230,14 @@ class Logger extends AsyncLogger implements LoggerInterface
         }
 
         unset(self::$loggers[$this->name]);
+
+        $this->alreadyClosed = true;
+        $arrayLogs = $this->arrayLogs;
+
+        if ($clearLogs)
+            $this->arrayLogs = [];
+
+        return $arrayLogs;
     }
 
     /**
@@ -380,22 +418,17 @@ class Logger extends AsyncLogger implements LoggerInterface
     }
 
     public function arrayWriter(
-        array &$array = null,
         $levels = self::ALL,
         $interval = 1,
         callable $formatter = null
     ) {
-        if (!isset($array)) {
-            $array = [];
-        }
-
         if ($interval > 1) {
-            return $this->setWriter(function (array $messages) use (&$array) {
-                \array_push($array, ...$messages);
+            return $this->setWriter(function (array $messages) {
+                \array_push($this->arrayLogs, ...$messages);
             }, $levels, $interval, $formatter);
         } else {
-            return $this->setWriter(function ($message) use (&$array) {
-                $array[] = $message;
+            return $this->setWriter(function ($message) {
+                $this->arrayLogs[] = $message;
             }, $levels, 1, $formatter);
         }
     }
