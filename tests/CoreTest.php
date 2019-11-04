@@ -31,6 +31,7 @@ class CoreTest extends TestCase
 		$this->assertSame($log, \logger_instance());
 		$this->assertFileExists(__DIR__ .\DS. $this->testFile);
         yield \logger_shutdown();
+        $this->assertEquals([], \logger_arrayLogs());
 	}
 
 	public function testGlobalCreate()
@@ -307,6 +308,7 @@ class CoreTest extends TestCase
         $expected = 'foo ' . $exceptionMsg . ' foo';
         yield \gather(\log_emergency($input, $context));
         $this->assertNotEmpty($expected, $this->getOnlyLoggedMessage($logger));
+        $this->assertCount(1, \logger_arrayLogs());
         yield \logger_close();
     }
 
@@ -372,6 +374,7 @@ class CoreTest extends TestCase
         $expected = array('info {Message {nothing} Bob Bar a}');
         $this->assertEquals($expected, $logger->getLogs());
         $logger->resetLogs();
+        $this->assertEquals([], \logger_arrayLogs());
         yield \logger_close();
     }
 
