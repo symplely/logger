@@ -406,7 +406,7 @@ class Logger extends AsyncLogger implements LoggerInterface
             }, $levels, $interval, $formatter);
         } else {
             return $this->setWriter(function ($message) use ($to, $subject, $headers) {
-                $mailer = @\mail($to, $subject, $message, \implode("\r\n", $headers));
+                $mailer = @\mail($to, $subject, (string) $message, \implode("\r\n", $headers));
                 if (!$mailer) {
                     $error = \error_get_last()['message'];
                     yield $this->close();
