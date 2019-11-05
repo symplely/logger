@@ -8,6 +8,8 @@ use Psr\Log\LogLevel;
 use Psr\Log\AbstractLogger;
 use Async\Coroutine\Kernel;
 use Async\Coroutine\Coroutine;
+use Async\Coroutine\TaskInterface;
+use Async\Coroutine\CoroutineInterface;
 
 class AsyncLogger extends AbstractLogger
 {
@@ -33,15 +35,44 @@ class AsyncLogger extends AbstractLogger
      */
     public function commit()
     {
-        if (!empty($this->loggerTaskId) && \is_array($this->loggerTaskId)) {
-            $removeLater = $this->loggerTaskId;
-            yield \gather($this->loggerTaskId);
-            foreach ($removeLater as $id) {
-                if (($key = \array_search($id, $this->loggerTaskId, true)) !== false) {
-                    unset($this->loggerTaskId[$key]);
-                }
+        if (!empty($this->loggerTaskId) && \is_array($this->loggerTaskId) && (\count($this->loggerTaskId) > 1)) {
+            $this->controller();
+            $remove = yield \gather($this->loggerTaskId);
+            foreach ($remove as $id => $null) {
+                unset($this->loggerTaskId[$id]);
             }
         }
+    }
+
+    protected function controller()
+    {
+        /**
+         * Handle not started tasks, force start.
+         */
+        $onNotStarted = function (TaskInterface $tasks, CoroutineInterface $coroutine) {
+            try {
+                if ($tasks->getState() === 'running'|| $tasks->rescheduled()) {
+                    $coroutine->execute(true);
+                } elseif ($tasks->isCustomState('true') && !$tasks->completed()) {
+                    $coroutine->schedule($tasks);
+                    $coroutine->execute(true);
+                }
+
+                if ($tasks->completed()) {
+                    $tasks->customState();
+                }
+            } catch (\Throwable $error) {
+                $tasks->setState('erred');
+                $tasks->setException($error);
+                $coroutine->schedule($tasks);
+                $coroutine->execute(true);
+            }
+        };
+
+        Kernel::gatherController(
+            'true',
+            null,
+            $onNotStarted);
     }
 
     public function emergency($message, array $context = array())

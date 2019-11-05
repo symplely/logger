@@ -51,7 +51,7 @@ if (!\function_exists('logger_instance')) {
     }
 
     /**
-     * Commit, close, and clears out an global logger instance by.
+     * Close, and clears out an global logger instance by.
      *
      * @param string $name - logger name
      * @param bool $clearLogs - should `arrayWriter` logs be cleared?
@@ -61,8 +61,6 @@ if (!\function_exists('logger_instance')) {
     function logger_close($name = null, $clearLogs = true)
     {
         $records = [];
-
-        yield \logger_commit($name);
 
         $logger = \logger_instance($name);
         if ($logger instanceof LoggerInterface)
