@@ -33,8 +33,6 @@ class Logger extends AsyncLogger implements LoggerInterface
         self::EMERGENCY => LogLevel::EMERGENCY,
     ];
 
-    private static $instance;
-
     private static $loggers = [];
 
     private $name;
@@ -66,8 +64,6 @@ class Logger extends AsyncLogger implements LoggerInterface
         }
 
         self::$loggers[$name] = $this;
-
-        self::$instance = self::$loggers[$name];
     }
 
     public function __constructError($name)
@@ -108,11 +104,6 @@ class Logger extends AsyncLogger implements LoggerInterface
     public static function isLogger($name): bool
     {
         return isset(self::$loggers[$name]);
-    }
-
-    public static function getInstance(): LoggerInterface
-    {
-        return self::$instance;
     }
 
     public function getName()
@@ -235,6 +226,8 @@ class Logger extends AsyncLogger implements LoggerInterface
 
         if ($clearLogs)
             $this->arrayLogs = [];
+
+        $this->alreadyClosed = true;
 
         return $arrayLogs;
     }

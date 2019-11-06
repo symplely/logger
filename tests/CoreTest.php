@@ -370,7 +370,8 @@ class CoreTest extends TestCase
         \logger_create();
         \ini_set('error_log', $this->dest);
         \logger_errorLog();
-        yield \gather(\log_debug('This is a debug message'));
+        yield \log_debug('This is a debug message');
+        yield \logger_commit();
         $content = \file_get_contents($this->dest);
         $this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/', $content);
         yield \logger_close();
@@ -391,7 +392,9 @@ class CoreTest extends TestCase
         \logger_array(Logger::ALL, 1, function ($level, $message) {
             return "$level $message";
         });
-        yield \gather(\log_info('{Message {nothing} {user} {foo.bar} a}', array('user' => 'Bob', 'foo.bar' => 'Bar')));
+        yield \log_info('{Message {nothing} {user} {foo.bar} a}', array('user' => 'Bob', 'foo.bar' => 'Bar'));
+        $this->expectOutputString('info {Message {nothing} Bob Bar a}'.\EOL);
+        yield \logger_printLogs();
 
         $expected = array('info {Message {nothing} Bob Bar a}');
         $this->assertEquals($expected, $logger->getLogs());
@@ -424,7 +427,8 @@ class CoreTest extends TestCase
 
         $expected = array('warning DUMMY');
         $this->assertEquals($expected, $logger->getLogs());
-        yield \logger_close();
+        $this->assertCount(1, yield \logger_close());
+        $this->assertCount(0, yield \logger_close());
     }
 
     public function testGlobalObjectCastToString()

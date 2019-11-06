@@ -8,8 +8,6 @@ use Psr\Log\LogLevel;
 use Psr\Log\AbstractLogger;
 use Async\Coroutine\Kernel;
 use Async\Coroutine\Coroutine;
-use Async\Coroutine\TaskInterface;
-use Async\Coroutine\CoroutineInterface;
 
 class AsyncLogger extends AbstractLogger
 {
@@ -36,46 +34,13 @@ class AsyncLogger extends AbstractLogger
     public function commit()
     {
         if (\is_array($this->loggerTaskId) && (\count($this->loggerTaskId) > 0)) {
-            $this->controller();
             $remove = yield \gather($this->loggerTaskId);
-            foreach ($remove as $id => $null) {
-                unset($this->loggerTaskId[$id]);
+            if (\is_array($remove)) {
+                foreach ($remove as $id => $null) {
+                    unset($this->loggerTaskId[$id]);
+                }
             }
         }
-    }
-
-    protected function controller()
-    {
-        /**
-         * Handle not started tasks, force start.
-         */
-        $onNotStarted = function (TaskInterface $tasks, CoroutineInterface $coroutine) {
-            // @codeCoverageIgnoreStart
-            try {
-                if ($tasks->getState() === 'running' || $tasks->rescheduled()) {
-                    $coroutine->execute(true);
-                } elseif ($tasks->isCustomState('true') && !$tasks->completed()) {
-                    $coroutine->schedule($tasks);
-                    $coroutine->execute(true);
-                }
-
-                if ($tasks->completed()) {
-                    $tasks->customState();
-                }
-            } catch (\Throwable $error) {
-                $tasks->setState('erred');
-                $tasks->setException($error);
-                $coroutine->schedule($tasks);
-                $coroutine->execute(true);
-            }
-        };
-        // @codeCoverageIgnoreEnd
-
-        Kernel::gatherController(
-            'true',
-            null,
-            $onNotStarted
-        );
     }
 
     public function emergency($message, array $context = array())

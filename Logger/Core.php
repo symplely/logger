@@ -66,8 +66,6 @@ if (!\function_exists('logger_instance')) {
         if ($logger instanceof LoggerInterface)
             $records = yield $logger->close($clearLogs);
 
-        \logger_clear($name);
-
         return $records;
     }
 
@@ -116,11 +114,13 @@ if (!\function_exists('logger_instance')) {
             $names = \array_keys($__loggerTag__);
             foreach ($names as $name) {
                 yield \logger_close($name);
+                \logger_clear($name);
             }
         }
 
         if (!empty($__logger__)) {
             yield \logger_close();
+            \logger_clear();
         }
     }
 
@@ -134,6 +134,23 @@ if (!\function_exists('logger_instance')) {
             return $logger->getLogs();
 
         return [];
+    }
+
+    /**
+     * Will wait until any pending logs are committed, and printout the `arrayWriter()` Logs.
+     *
+     * - This function needs to be prefixed with `yield`
+     */
+    function logger_printLogs($name = null)
+    {
+        $logger = \logger_instance($name);
+        if ($logger instanceof LoggerInterface) {
+            yield;
+            yield $logger->commit();
+            foreach ($logger->getLogs() as $output) {
+                print $output . \EOL;
+            }
+        }
     }
 
     /**

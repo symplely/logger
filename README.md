@@ -42,7 +42,7 @@ This **`logger`** package is intended to be used ___asynchronous___, which requi
  \logger_instance($name);
 
 /**
- * Close, and clears out an global logger instance by name.
+ * Close and perform any cleanup actions by name.
  * Optionally, clear arrayWriter logs.
  * - This function needs to be prefixed with `yield`
  */
@@ -66,6 +66,12 @@ yield \logger_commit($name)
  * - This function needs to be prefixed with `yield`
  */
 yield \logger_arrayLogs($name)
+
+/**
+ * Printout the `arrayWriter()` Logs.
+ * - This function needs to be prefixed with `yield`
+ */
+yield \logger_printLogs($name)
 ```
 
 ```php
