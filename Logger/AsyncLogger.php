@@ -50,6 +50,7 @@ class AsyncLogger extends AbstractLogger
          * Handle not started tasks, force start.
          */
         $onNotStarted = function (TaskInterface $tasks, CoroutineInterface $coroutine) {
+            // @codeCoverageIgnoreStart
             try {
                 if ($tasks->getState() === 'running' || $tasks->rescheduled()) {
                     $coroutine->execute(true);
@@ -68,6 +69,7 @@ class AsyncLogger extends AbstractLogger
                 $coroutine->execute(true);
             }
         };
+        // @codeCoverageIgnoreEnd
 
         Kernel::gatherController(
             'true',
