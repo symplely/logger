@@ -25,7 +25,7 @@ class AsyncLogger extends AbstractLogger
      */
     protected function _make_log_task($level, $message, array $context = array())
     {
-        $loggerId = yield \await($this->log($level, $message, $context), 'true', Logger::getInstance());
+        $loggerId = yield \await($this->log($level, $message, $context), 'true');
         $this->loggerTaskId[] = $loggerId;
     }
 
@@ -35,7 +35,7 @@ class AsyncLogger extends AbstractLogger
      */
     public function commit()
     {
-        if (!empty($this->loggerTaskId) && \is_array($this->loggerTaskId) && (\count($this->loggerTaskId) > 1)) {
+        if (\is_array($this->loggerTaskId) && (\count($this->loggerTaskId) > 0)) {
             $this->controller();
             $remove = yield \gather($this->loggerTaskId);
             foreach ($remove as $id => $null) {
@@ -51,7 +51,7 @@ class AsyncLogger extends AbstractLogger
          */
         $onNotStarted = function (TaskInterface $tasks, CoroutineInterface $coroutine) {
             try {
-                if ($tasks->getState() === 'running'|| $tasks->rescheduled()) {
+                if ($tasks->getState() === 'running' || $tasks->rescheduled()) {
                     $coroutine->execute(true);
                 } elseif ($tasks->isCustomState('true') && !$tasks->completed()) {
                     $coroutine->schedule($tasks);
@@ -72,7 +72,8 @@ class AsyncLogger extends AbstractLogger
         Kernel::gatherController(
             'true',
             null,
-            $onNotStarted);
+            $onNotStarted
+        );
     }
 
     public function emergency($message, array $context = array())

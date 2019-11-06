@@ -79,8 +79,11 @@ if (!\function_exists('logger_instance')) {
     function logger_commit($name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
-            return $logger->commit();
+        if ($logger instanceof LoggerInterface) {
+            yield;
+            yield;
+            yield $logger->commit();
+        }
     }
 
     /**

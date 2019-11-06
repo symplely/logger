@@ -1,4 +1,5 @@
 <?php
+
 namespace Async\Tests;
 
 use Async\Logger\Logger;
@@ -17,10 +18,10 @@ class LoggerTest extends TestCase
     protected $logger;
     protected $dest = 'stdout.log';
 
-	/**
-	 * @var string
-	 */
-	private $testFile = 'logger-test.log';
+    /**
+     * @var string
+     */
+    private $testFile = 'logger-test.log';
 
     /**
      * @return LoggerInterface
@@ -48,8 +49,8 @@ class LoggerTest extends TestCase
     {
         \coroutine_clear();
 
-		if (file_exists(__DIR__ .\DS. $this->testFile)) {
-			unlink(__DIR__ .\DS. $this->testFile);
+        if (file_exists(__DIR__ . \DS . $this->testFile)) {
+            unlink(__DIR__ . \DS . $this->testFile);
         }
 
         $this->logger = new Logger("php-app");
@@ -61,295 +62,301 @@ class LoggerTest extends TestCase
 
     protected function tearDown(): void
     {
-		if (file_exists(__DIR__ .\DS. $this->testFile)) {
-			unlink(__DIR__ .\DS. $this->testFile);
+        if (file_exists(__DIR__ . \DS . $this->testFile)) {
+            unlink(__DIR__ . \DS . $this->testFile);
         }
 
         $this->logger->resetLogs();
         $this->logger = null;
     }
 
-	public function taskCreateInstance()
-	{
+    public function taskCreateInstance()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile);
-		$this->assertInstanceOf(Logger::class, $log);
-		$this->assertFileExists(__DIR__ .\DS. $this->testFile);
-		yield $log->close();
-	}
-
-	public function testCreateInstance()
-	{
-        \coroutine_run($this->taskCreateInstance());
-	}
-
-	public function taskLogWithoutContext()
-	{
-        $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
-		yield $log->log(LogLevel::DEBUG, 'A log message');
-
-        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG A log message]/', $content);
-		yield $log->close();
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile);
+        $this->assertInstanceOf(Logger::class, $log);
+        $this->assertFileExists(__DIR__ . \DS . $this->testFile);
+        yield $log->close();
     }
 
-	public function testLogWithoutContext()
-	{
+    public function testCreateInstance()
+    {
+        \coroutine_run($this->taskCreateInstance());
+    }
+
+    public function taskLogWithoutContext()
+    {
+        $log = new Logger("log-app");
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::DEBUG);
+        yield $log->log(LogLevel::DEBUG, 'A log message');
+
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
+        $this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} DEBUG A log message]/', $content);
+        yield $log->close();
+    }
+
+    public function testLogWithoutContext()
+    {
         \coroutine_run($this->taskLogWithoutContext());
     }
 
-	public function taskLogLevelInvalidArgumentException()
-	{
+    public function taskLogLevelInvalidArgumentException()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::DEBUG);
         $this->expectException(InvalidArgumentException::class);
-		yield $log->log('LogLevel', 'A log message');
-		yield $log->close();
-	}
+        yield $log->log('LogLevel', 'A log message');
+        yield $log->close();
+    }
 
-	public function testLogLevelInvalidArgumentException()
-	{
+    public function testLogLevelInvalidArgumentException()
+    {
         \coroutine_run($this->taskLogLevelInvalidArgumentException());
     }
 
-	public function taskLogWithContext()
-	{
+    public function taskLogWithContext()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::WARNING, 2);
-		yield $log->log(LogLevel::WARNING, 'Hello {name}', array('name' => 'World'));
-		yield $log->log(LogLevel::WARNING, 'hi {name}', array('name' => 'Planet'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::WARNING, 2);
+        yield $log->log(LogLevel::WARNING, 'Hello {name}', array('name' => 'World'));
+        yield $log->log(LogLevel::WARNING, 'hi {name}', array('name' => 'Planet'));
 
-		$content = \file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hello World]/', $content);
-		$this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hi Planet]/', $content);
-		yield $log->close();
+        $content = \file_get_contents(__DIR__ . \DS . $this->testFile);
+        $this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hello World]/', $content);
+        $this->assertRegExp('/[{^\[.+\] (\w+) (.+)?} WARNING Hi Planet]/', $content);
+        yield $log->close();
     }
 
-	public function testLogWithContext()
-	{
+    public function testLogWithContext()
+    {
         \coroutine_run($this->taskLogWithContext());
     }
 
-	public function taskLogEmergencyUniqid()
-	{
+    public function taskLogEmergencyUniqid()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::EMERGENCY);
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::EMERGENCY);
         $log->addUniqueId();
-		yield \gather($log->emergency('This is an emergency with {unique_id}'));
+        yield \gather($log->emergency('This is an emergency with {unique_id}'));
 
-        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
         /**
          * @see http://txt2re.com/
          */
-        $re1='(\\[.*?\\])';	# Square Braces 1
-        $re2='(\\s+)';	# White Space 1
-        $re3='(\\(.*\\))';	# Round Braces 1
-        $re4='(.)';	# Any Single Character 1
-        $re5='(\\s+)';	# White Space 2
-        $re6='((?:[a-z][a-z]+))';	# Word 1
-        $re7='(\\s+)';	# White Space 3
-        $re8='(.)';	# Any Single Character 2
-        $re9='((?:[a-z][a-z]+))';	# Word 2
-        $re10='(\\s+)';	# White Space 4
-        $re11='((?:[a-z][a-z]+))';	# Word 3
-        $re12='(\\s+)';	# White Space 5
-        $re13='((?:[a-z][a-z]+))';	# Word 4
-        $re14='(\\s+)';	# White Space 6
-        $re15='((?:[a-z][a-z]+))';	# Word 5
-        $re16='(\\s+)';	# White Space 7
-        $re17='((?:[a-z][a-z]+))';	# Word 6
-        $re18='(\\s+)';	# White Space 8
-        $re19='.*?';	# Non-greedy match on filler
-        $re20='((?:[a-z][a-z]*[0-9]+[a-z0-9]*))';	# Alphanumeric 1
+        $re1 = '(\\[.*?\\])';    # Square Braces 1
+        $re2 = '(\\s+)';    # White Space 1
+        $re3 = '(\\(.*\\))';    # Round Braces 1
+        $re4 = '(.)';    # Any Single Character 1
+        $re5 = '(\\s+)';    # White Space 2
+        $re6 = '((?:[a-z][a-z]+))';    # Word 1
+        $re7 = '(\\s+)';    # White Space 3
+        $re8 = '(.)';    # Any Single Character 2
+        $re9 = '((?:[a-z][a-z]+))';    # Word 2
+        $re10 = '(\\s+)';    # White Space 4
+        $re11 = '((?:[a-z][a-z]+))';    # Word 3
+        $re12 = '(\\s+)';    # White Space 5
+        $re13 = '((?:[a-z][a-z]+))';    # Word 4
+        $re14 = '(\\s+)';    # White Space 6
+        $re15 = '((?:[a-z][a-z]+))';    # Word 5
+        $re16 = '(\\s+)';    # White Space 7
+        $re17 = '((?:[a-z][a-z]+))';    # Word 6
+        $re18 = '(\\s+)';    # White Space 8
+        $re19 = '.*?';    # Non-greedy match on filler
+        $re20 = '((?:[a-z][a-z]*[0-9]+[a-z0-9]*))';    # Alphanumeric 1
 
-		$this->assertRegExp(
-            "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20."/is", $content);
-		yield $log->close();
+        $this->assertRegExp(
+            "/" . $re1 . $re2 . $re3 . $re4 . $re5 . $re6 . $re7 . $re8 . $re9 . $re10 . $re11 . $re12 . $re13 . $re14 . $re15 . $re16 . $re17 . $re18 . $re19 . $re20 . "/is",
+            $content
+        );
+        yield $log->close();
     }
 
-	public function testLogEmergencyUniqid()
-	{
+    public function testLogEmergencyUniqid()
+    {
         \coroutine_run($this->taskLogEmergencyUniqid());
     }
 
-	public function taskLogAlert()
-	{
+    public function taskLogAlert()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::ALERT);
-		$log->addPid();
-		yield \gather($log->alert('This is an alert with {pid}'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::ALERT);
+        $log->addPid();
+        yield \gather($log->alert('This is an alert with {pid}'));
 
-        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
         /**
          * @see http://txt2re.com/
          */
-        $re1='(\\[.*?\\])';	# Square Braces 1
-        $re2='(\\s+)';	# White Space 1
-        $re3='(\\(.*\\))';	# Round Braces 1
-        $re4='(.)';	# Any Single Character 1
-        $re5='(\\s+)';	# White Space 2
-        $re6='((?:[a-z][a-z]+))';	# Word 1
-        $re7='(\\s+)';	# White Space 3
-        $re8='(.)';	# Any Single Character 2
-        $re9='((?:[a-z][a-z]+))';	# Word 2
-        $re10='(\\s+)';	# White Space 4
-        $re11='((?:[a-z][a-z]+))';	# Word 3
-        $re12='(\\s+)';	# White Space 5
-        $re13='((?:[a-z][a-z]+))';	# Word 4
-        $re14='(\\s+)';	# White Space 6
-        $re15='((?:[a-z][a-z]+))';	# Word 5
-        $re16='(\\s+)';	# White Space 7
-        $re17='((?:[a-z][a-z]+))';	# Word 6
-        $re18='(\\s+)';	# White Space 8
-        $re19='.*?';	# Non-greedy match on filler
-        $re20='(\\d+)';	# Integer Number 1
-		$this->assertRegExp(
-            "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20."/is", $content);
-		yield $log->close();
+        $re1 = '(\\[.*?\\])';    # Square Braces 1
+        $re2 = '(\\s+)';    # White Space 1
+        $re3 = '(\\(.*\\))';    # Round Braces 1
+        $re4 = '(.)';    # Any Single Character 1
+        $re5 = '(\\s+)';    # White Space 2
+        $re6 = '((?:[a-z][a-z]+))';    # Word 1
+        $re7 = '(\\s+)';    # White Space 3
+        $re8 = '(.)';    # Any Single Character 2
+        $re9 = '((?:[a-z][a-z]+))';    # Word 2
+        $re10 = '(\\s+)';    # White Space 4
+        $re11 = '((?:[a-z][a-z]+))';    # Word 3
+        $re12 = '(\\s+)';    # White Space 5
+        $re13 = '((?:[a-z][a-z]+))';    # Word 4
+        $re14 = '(\\s+)';    # White Space 6
+        $re15 = '((?:[a-z][a-z]+))';    # Word 5
+        $re16 = '(\\s+)';    # White Space 7
+        $re17 = '((?:[a-z][a-z]+))';    # Word 6
+        $re18 = '(\\s+)';    # White Space 8
+        $re19 = '.*?';    # Non-greedy match on filler
+        $re20 = '(\\d+)';    # Integer Number 1
+        $this->assertRegExp(
+            "/" . $re1 . $re2 . $re3 . $re4 . $re5 . $re6 . $re7 . $re8 . $re9 . $re10 . $re11 . $re12 . $re13 . $re14 . $re15 . $re16 . $re17 . $re18 . $re19 . $re20 . "/is",
+            $content
+        );
+        yield $log->close();
     }
 
-	public function testLogAlert()
-	{
+    public function testLogAlert()
+    {
         \coroutine_run($this->taskLogAlert());
     }
 
-	public function taskLogCritical()
-	{
+    public function taskLogCritical()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::CRITICAL);
-		$log->addTimestamp(true);
-		yield \gather($log->critical('This is a critical situation happened at {timestamp}'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::CRITICAL);
+        $log->addTimestamp(true);
+        yield \gather($log->critical('This is a critical situation happened at {timestamp}'));
 
-        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
         /**
          * @see http://txt2re.com/
          */
-        $re1='(\\[.*?\\])';	# Square Braces 1
-        $re2='(\\s+)';	# White Space 1
-        $re3='(\\(.*\\))';	# Round Braces 1
-        $re4='(.)';	# Any Single Character 1
-        $re5='(\\s+)';	# White Space 2
-        $re6='((?:[a-z][a-z]+))';	# Word 1
-        $re7='(\\s+)';	# White Space 3
-        $re8='(.)';	# Any Single Character 2
-        $re9='((?:[a-z][a-z]+))';	# Word 2
-        $re10='(\\s+)';	# White Space 4
-        $re11='((?:[a-z][a-z]+))';	# Word 3
-        $re12='(\\s+)';	# White Space 5
-        $re13='((?:[a-z][a-z0-9_]*))';	# Variable Name 1
-        $re14='(\\s+)';	# White Space 6
-        $re15='((?:[a-z][a-z]+))';	# Word 4
-        $re16='(\\s+)';	# White Space 7
-        $re17='((?:[a-z][a-z]+))';	# Word 5
-        $re18='(\\s+)';	# White Space 8
-        $re19='((?:[a-z][a-z]+))';	# Word 6
-        $re20='(\\s+)';	# White Space 9
-        $re21='((?:[a-z][a-z]+))';	# Word 7
-        $re22='(\\s+)';	# White Space 10
-        $re23='([+-]?\\d*\\.\\d+)(?![-+0-9\\.])';	# Float 1
-		$this->assertRegExp(
-            "/".$re1.$re2.$re3.$re4.$re5.$re6.$re7.$re8.$re9.$re10.$re11.$re12.$re13.$re14.$re15.$re16.$re17.$re18.$re19.$re20.$re21.$re22.$re23."/is", $content);
-		yield $log->close();
-	}
+        $re1 = '(\\[.*?\\])';    # Square Braces 1
+        $re2 = '(\\s+)';    # White Space 1
+        $re3 = '(\\(.*\\))';    # Round Braces 1
+        $re4 = '(.)';    # Any Single Character 1
+        $re5 = '(\\s+)';    # White Space 2
+        $re6 = '((?:[a-z][a-z]+))';    # Word 1
+        $re7 = '(\\s+)';    # White Space 3
+        $re8 = '(.)';    # Any Single Character 2
+        $re9 = '((?:[a-z][a-z]+))';    # Word 2
+        $re10 = '(\\s+)';    # White Space 4
+        $re11 = '((?:[a-z][a-z]+))';    # Word 3
+        $re12 = '(\\s+)';    # White Space 5
+        $re13 = '((?:[a-z][a-z0-9_]*))';    # Variable Name 1
+        $re14 = '(\\s+)';    # White Space 6
+        $re15 = '((?:[a-z][a-z]+))';    # Word 4
+        $re16 = '(\\s+)';    # White Space 7
+        $re17 = '((?:[a-z][a-z]+))';    # Word 5
+        $re18 = '(\\s+)';    # White Space 8
+        $re19 = '((?:[a-z][a-z]+))';    # Word 6
+        $re20 = '(\\s+)';    # White Space 9
+        $re21 = '((?:[a-z][a-z]+))';    # Word 7
+        $re22 = '(\\s+)';    # White Space 10
+        $re23 = '([+-]?\\d*\\.\\d+)(?![-+0-9\\.])';    # Float 1
+        $this->assertRegExp(
+            "/" . $re1 . $re2 . $re3 . $re4 . $re5 . $re6 . $re7 . $re8 . $re9 . $re10 . $re11 . $re12 . $re13 . $re14 . $re15 . $re16 . $re17 . $re18 . $re19 . $re20 . $re21 . $re22 . $re23 . "/is",
+            $content
+        );
+        yield $log->close();
+    }
 
-	public function testLogCritical()
-	{
+    public function testLogCritical()
+    {
         \coroutine_run($this->taskLogCritical());
     }
 
-	public function taskLogError()
-	{
+    public function taskLogError()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::ERROR);
-		yield \gather($log->error('This is an error'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::ERROR);
+        yield \gather($log->error('This is an error'));
 
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp(
-			'/[{^\[.+\] (\w+) (.+)?} ERROR This is an error]/',
-			$content
-		);
-		yield $log->close();
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
+        $this->assertRegExp(
+            '/[{^\[.+\] (\w+) (.+)?} ERROR This is an error]/',
+            $content
+        );
+        yield $log->close();
     }
 
-	public function testLogError()
-	{
+    public function testLogError()
+    {
         \coroutine_run($this->taskLogError());
     }
 
-	public function taskLogWarning()
-	{
+    public function taskLogWarning()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::WARNING);
-		yield \gather($log->warning('This is a warning'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::WARNING);
+        yield \gather($log->warning('This is a warning'));
 
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp(
-			'/[{^\[.+\] (\w+) (.+)?} WARNING This is a warning]/',
-			$content
-		);
-		yield $log->close();
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
+        $this->assertRegExp(
+            '/[{^\[.+\] (\w+) (.+)?} WARNING This is a warning]/',
+            $content
+        );
+        yield $log->close();
     }
 
-	public function testLogWarning()
-	{
+    public function testLogWarning()
+    {
         \coroutine_run($this->taskLogWarning());
     }
 
-	public function taskLogNotice()
-	{
+    public function taskLogNotice()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::NOTICE);
-		yield \gather($log->notice('This is just a notice'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::NOTICE);
+        yield \gather($log->notice('This is just a notice'));
 
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp(
-			'/[{^\[.+\] (\w+) (.+)?} NOTICE This is just a notice]/',
-			$content
-		);
-		yield $log->close();
-	}
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
+        $this->assertRegExp(
+            '/[{^\[.+\] (\w+) (.+)?} NOTICE This is just a notice]/',
+            $content
+        );
+        yield $log->close();
+    }
 
-	public function testLogNotice()
-	{
+    public function testLogNotice()
+    {
         \coroutine_run($this->taskLogNotice());
     }
 
-	public function taskLogInfo()
-	{
+    public function taskLogInfo()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::INFO);
-		$log->addPhpSapi();
-		$log->addPhpVersion();
-		yield $log->addMemoryUsage('MB');
-		yield \gather($log->info('This is an information memory usage {memory_usage}, sapi {php_sapi}, php {php_version}'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::INFO);
+        $log->addPhpSapi();
+        $log->addPhpVersion();
+        yield $log->addMemoryUsage('MB');
+        yield \gather($log->info('This is an information memory usage {memory_usage}, sapi {php_sapi}, php {php_version}'));
 
-        $content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp("/[This is an information memory usage]/is",	$content);
-		yield $log->close();
-	}
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
+        $this->assertRegExp("/[This is an information memory usage]/is",    $content);
+        yield $log->close();
+    }
 
-	public function testLogInfo()
-	{
+    public function testLogInfo()
+    {
         \coroutine_run($this->taskLogInfo());
     }
 
-	public function taskLogDebug()
-	{
+    public function taskLogDebug()
+    {
         $log = new Logger("log-app");
-		yield $log->streamWriter(__DIR__ .\DS. $this->testFile, Logger::DEBUG);
-		yield \gather($log->debug('This is a debug message'));
+        yield $log->streamWriter(__DIR__ . \DS . $this->testFile, Logger::DEBUG);
+        yield \gather($log->debug('This is a debug message'));
 
-		$content = file_get_contents(__DIR__ .\DS. $this->testFile);
-		$this->assertRegExp(
-			'/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/',
-			$content
-		);
-		yield $log->close();
-	}
+        $content = file_get_contents(__DIR__ . \DS . $this->testFile);
+        $this->assertRegExp(
+            '/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/',
+            $content
+        );
+        yield $log->close();
+    }
 
-	public function testLogDebug()
-	{
+    public function testLogDebug()
+    {
         \coroutine_run($this->taskLogDebug());
     }
 
@@ -363,7 +370,7 @@ class LoggerTest extends TestCase
     }
 
     public function testGetName()
-	{
+    {
         \coroutine_run($this->taskGetName());
     }
 
@@ -381,7 +388,7 @@ class LoggerTest extends TestCase
     }
 
     public function testExceptionInContext()
-	{
+    {
         \coroutine_run($this->taskExceptionInContext());
     }
 
@@ -394,7 +401,7 @@ class LoggerTest extends TestCase
     }
 
     public function testThrowsInvalidArgumentExceptionWhenNull()
-	{
+    {
         \coroutine_run($this->taskThrowsInvalidArgumentExceptionWhenNull());
     }
 
@@ -407,7 +414,7 @@ class LoggerTest extends TestCase
     }
 
     public function testThrowsInvalidArgumentException()
-	{
+    {
         \coroutine_run($this->taskThrowsInvalidArgumentException());
     }
 
@@ -422,22 +429,22 @@ class LoggerTest extends TestCase
     }
 
     public function testMail()
-	{
+    {
         \coroutine_run($this->taskMail());
     }
 
-	public function taskErrorLog()
-	{
+    public function taskErrorLog()
+    {
         \ini_set('error_log', $this->dest);
         $log = new Logger("log-app");
         $log->errorLogWriter();
-		yield \gather($log->debug('This is a debug message'));
+        yield \gather($log->debug('This is a debug message'));
 
-		$content = file_get_contents($this->dest);
-		$this->assertRegExp(
-			'/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/',
-			$content
-		);
+        $content = file_get_contents($this->dest);
+        $this->assertRegExp(
+            '/[{^\[.+\] (\w+) (.+)?} DEBUG This is a debug message]/',
+            $content
+        );
         yield $log->close();
 
         if (\file_exists($this->dest)) {
@@ -446,24 +453,24 @@ class LoggerTest extends TestCase
     }
 
     public function testErrorLog()
-	{
+    {
         \coroutine_run($this->taskErrorLog());
     }
 
-	public function taskSysLog()
-	{
+    public function taskSysLog()
+    {
         $log = new Logger("log-app");
         $this->assertTrue($log->isLogger('log-app'));
         $log->syslogWriter();
-		yield \gather($log->debug('This is a debug message'));
-		yield \gather($log->warning('This is a warning message'));
+        yield \gather($log->debug('This is a debug message'));
+        yield \gather($log->warning('This is a warning message'));
 
         yield $log->close();
         $this->assertFalse($log->isLogger('log-app'));
     }
 
     public function testSysLog()
-	{
+    {
         \coroutine_run($this->taskSysLog());
     }
 
@@ -474,8 +481,8 @@ class LoggerTest extends TestCase
         yield $logger->log($level, $message, array('user' => 'Bob'));
 
         $expected = array(
-            $level.' message of level '.$level.' with context: Bob',
-            $level.' message of level '.$level.' with context: Bob',
+            $level . ' message of level ' . $level . ' with context: Bob',
+            $level . ' message of level ' . $level . ' with context: Bob',
         );
         $this->assertEquals($expected, $this->getLogs());
         yield $logger->close();
@@ -485,7 +492,7 @@ class LoggerTest extends TestCase
      * @dataProvider provideLevelsAndMessages
      */
     public function testLogsAtAllLevels($level, $message)
-	{
+    {
         \coroutine_run($this->taskLogsAtAllLevels($level, $message));
     }
 
@@ -514,7 +521,7 @@ class LoggerTest extends TestCase
     }
 
     public function testContextReplacement()
-	{
+    {
         \coroutine_run($this->taskContextReplacement());
     }
 
@@ -536,7 +543,7 @@ class LoggerTest extends TestCase
     }
 
     public function testObjectCastToString()
-	{
+    {
         \coroutine_run($this->taskObjectCastToString());
     }
 
@@ -565,7 +572,7 @@ class LoggerTest extends TestCase
     }
 
     public function testContextCanContainAnything()
-	{
+    {
         \coroutine_run($this->taskContextCanContainAnything());
     }
 
@@ -584,7 +591,7 @@ class LoggerTest extends TestCase
     }
 
     public function testContextExceptionKeyCanBeExceptionOrOtherValues()
-	{
+    {
         \coroutine_run($this->taskContextExceptionKeyCanBeExceptionOrOtherValues());
     }
 
@@ -600,6 +607,5 @@ class LoggerTest extends TestCase
 class DummyTest
 {
     public function __toString()
-    {
-    }
+    { }
 }
