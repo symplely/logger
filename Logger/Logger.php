@@ -5,23 +5,12 @@ declare(strict_types=1);
 namespace Async\Logger;
 
 use Psr\Log\LogLevel;
-use Psr\Log\LoggerInterface;
 use Psr\Log\InvalidArgumentException;
 use Async\Logger\AsyncLogger;
+use Async\Logger\AsyncLoggerInterface;
 
-class Logger extends AsyncLogger implements LoggerInterface
+class Logger extends AsyncLogger implements AsyncLoggerInterface
 {
-    const NULL      = 0;
-    const DEBUG     = 0x01;
-    const INFO      = 0x02;
-    const NOTICE    = 0x04;
-    const WARNING   = 0x08;
-    const ERROR     = 0x10;
-    const CRITICAL  = 0x20;
-    const ALERT     = 0x40;
-    const EMERGENCY = 0x80;
-    const ALL       = 0xff;
-
     private static $levels = [
         self::DEBUG     => LogLevel::DEBUG,
         self::INFO      => LogLevel::INFO,
@@ -35,7 +24,7 @@ class Logger extends AsyncLogger implements LoggerInterface
 
     private static $loggers = [];
 
-    private $name;
+    private $name = '';
 
     private $handlers = [];
 
@@ -66,32 +55,23 @@ class Logger extends AsyncLogger implements LoggerInterface
         self::$loggers[$name] = $this;
     }
 
-    public function __constructError($name)
+    private function __constructError($name)
     {
         yield $this->close();
         throw new InvalidArgumentException("Logger('$name') already defined");
     }
 
-    /**
-     * Returns the array of `arrayWriter()` Logs.
-     * This will return the log messages in order.
-     *
-     * @return array
-     */
     public function getLogs(): array
     {
         return $this->arrayLogs;
     }
 
-    /**
-     * Clear the `arrayWriter()` Logs.
-     */
     public function resetLogs()
     {
         $this->arrayLogs = [];
     }
 
-    public static function getLogger($name): LoggerInterface
+    public static function getLogger($name): AsyncLoggerInterface
     {
         if (empty($name)) {
             $path = \explode('\\', \get_called_class());
@@ -106,35 +86,32 @@ class Logger extends AsyncLogger implements LoggerInterface
         return isset(self::$loggers[$name]);
     }
 
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
-    public function defaultFormatter(callable $formatter)
+    public function defaultFormatter(callable $formatter): AsyncLoggerInterface
     {
         $this->defaultFormatter = $formatter;
 
         return $this;
     }
 
-    public function disable($levels)
+    public function disable($levels): AsyncLoggerInterface
     {
         $this->enabled &= ~$levels;
 
         return $this;
     }
 
-    public function enable($levels)
+    public function enable($levels): AsyncLoggerInterface
     {
         $this->enabled |= $levels;
 
         return $this;
     }
 
-    /**
-     * Setup the writer handler, Set the logging level of the handler.
-     */
     public function setWriter(callable $writer, $levels = self::ALL, $interval = 1, callable $formatter = null)
     {
         if (empty($formatter)) {
@@ -197,18 +174,11 @@ class Logger extends AsyncLogger implements LoggerInterface
         }
     }
 
-    public function onClose(callable $command)
+    private function onClose(callable $command)
     {
         $this->onClose[] = $command;
     }
 
-    /**
-     * Close and perform any cleanup actions.
-     *
-     * @param bool $clearLogs - should `arrayWriter` logs be cleared?
-     *
-     * @return array - the logs of `arrayWriter()`
-     */
     public function close($clearLogs = true)
     {
         if ($this->alreadyClosed)
@@ -232,9 +202,6 @@ class Logger extends AsyncLogger implements LoggerInterface
         return $arrayLogs;
     }
 
-    /**
-     * Ensure all logging output has been flushed
-     */
     public function flush()
     {
         foreach ($this->handlers as $handler) {
@@ -282,29 +249,13 @@ class Logger extends AsyncLogger implements LoggerInterface
         return \strtr($string, $replacement);
     }
 
-    /**
-     * Adds additional context data to the level message
-     *
-     * @param string $key
-     * @param callable $processor
-     */
-    public function addProcessor($key, callable $processor)
+    public function addProcessor($key, callable $processor): AsyncLoggerInterface
     {
         $this->processors[$key] = $processor;
 
         return $this;
     }
 
-    /**
-     * concrete writers
-     */
-
-    /**
-     * @param string|resource id $stream
-     * @param int $mask
-     * @param int $interval
-     * @param callable $formatter
-     */
     public function streamWriter($stream = 'php://stdout', $levels = self::ALL, $interval = 1, callable $formatter = null)
     {
         if (!\is_resource($stream)) {
@@ -427,24 +378,21 @@ class Logger extends AsyncLogger implements LoggerInterface
         }
     }
 
-    /**
-     * concrete context processors
-     */
-    public function addUniqueId($prefix = '')
+    public function addUniqueId($prefix = ''): AsyncLoggerInterface
     {
         return $this->addProcessor('unique_id', function () use ($prefix) {
             return \uniqid($prefix);
         });
     }
 
-    public function addPid()
+    public function addPid(): AsyncLoggerInterface
     {
         return $this->addProcessor('pid', function () {
             return \getmypid();
         });
     }
 
-    public function addTimestamp($micro = false)
+    public function addTimestamp($micro = false): AsyncLoggerInterface
     {
         return $this->addProcessor('timestamp', function () use ($micro) {
             return $micro ? \microtime(true) : \time();
@@ -476,14 +424,14 @@ class Logger extends AsyncLogger implements LoggerInterface
         });
     }
 
-    public function addPhpSapi()
+    public function addPhpSapi(): AsyncLoggerInterface
     {
         return $this->addProcessor('php_sapi', function () {
             return \php_sapi_name();
         });
     }
 
-    public function addPhpVersion()
+    public function addPhpVersion(): AsyncLoggerInterface
     {
         return $this->addProcessor('php_version', function () {
             return \PHP_VERSION;

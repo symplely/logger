@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Async\Logger\Logger;
+use Async\Logger\AsyncLoggerInterface;
 use Psr\Log\LoggerInterface;
 
 if (!\function_exists('logger_instance')) {
@@ -23,7 +24,7 @@ if (!\function_exists('logger_instance')) {
     /**
      * Create, and return an global logger instance by.
      */
-    function logger_create(?string $name = null): LoggerInterface
+    function logger_create(?string $name = null): AsyncLoggerInterface
     {
         global $__logger__, $__loggerTag__;
 
@@ -63,7 +64,7 @@ if (!\function_exists('logger_instance')) {
         $records = [];
 
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             $records = yield $logger->close($clearLogs);
 
         return $records;
@@ -77,7 +78,7 @@ if (!\function_exists('logger_instance')) {
     function logger_commit($name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface) {
+        if ($logger instanceof AsyncLoggerInterface) {
             yield;
             yield;
             yield $logger->commit();
@@ -111,7 +112,7 @@ if (!\function_exists('logger_instance')) {
         global $__logger__, $__loggerTag__;
 
         if (!empty($__loggerTag__)) {
-            $names = \array_keys($__loggerTag__);
+            $names = \array_keys((array) $__loggerTag__);
             foreach ($names as $name) {
                 yield \logger_close($name);
                 \logger_clear($name);
@@ -130,7 +131,7 @@ if (!\function_exists('logger_instance')) {
     function logger_arrayLogs($name = null): array
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->getLogs();
 
         return [];
@@ -144,7 +145,7 @@ if (!\function_exists('logger_instance')) {
     function logger_printLogs($name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface) {
+        if ($logger instanceof AsyncLoggerInterface) {
             yield;
             yield $logger->commit();
             foreach ($logger->getLogs() as $output) {
@@ -166,7 +167,7 @@ if (!\function_exists('logger_instance')) {
         $name = null
     ) {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->setWriter($writer, $levels, $interval, $formatter);
     }
 
@@ -181,7 +182,7 @@ if (!\function_exists('logger_instance')) {
         $name = null
     ) {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->syslogWriter($logOpts, $facility, $levels, $formatter);
     }
 
@@ -191,7 +192,7 @@ if (!\function_exists('logger_instance')) {
     function logger_errorlog($type = 0, $levels = Logger::ALL, callable $formatter = null, $name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->errorLogWriter($type, $levels, $formatter);
     }
 
@@ -205,7 +206,7 @@ if (!\function_exists('logger_instance')) {
         $name = null
     ) {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->arrayWriter($levels, $interval, $formatter);
     }
 
@@ -222,7 +223,7 @@ if (!\function_exists('logger_instance')) {
         $name = null
     ) {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->streamWriter($stream, $levels, $interval, $formatter);
     }
 
@@ -241,7 +242,7 @@ if (!\function_exists('logger_instance')) {
         $name = null
     ) {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->mailWriter($to, $subject, $headers, $levels, $interval, $formatter);
     }
 
@@ -404,7 +405,7 @@ if (!\function_exists('logger_instance')) {
     function logger_processor($key, callable $processor, $name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->addProcessor($key, $processor);
     }
 
@@ -415,7 +416,7 @@ if (!\function_exists('logger_instance')) {
     function logger_uniqueId($prefix = '', $name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->addUniqueId($prefix);
     }
 
@@ -426,7 +427,7 @@ if (!\function_exists('logger_instance')) {
     function logger_pid($name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->addPid();
     }
 
@@ -437,7 +438,7 @@ if (!\function_exists('logger_instance')) {
     function logger_timestamp($micro = false, $name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->addTimestamp($micro);
     }
 
@@ -450,7 +451,7 @@ if (!\function_exists('logger_instance')) {
     function logger_memoryUsage($format = null, $real = false, $peak = false, $name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->addMemoryUsage($format, $real, $peak);
     }
 
@@ -461,7 +462,7 @@ if (!\function_exists('logger_instance')) {
     function logger_phpSapi($name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->addPhpSapi();
     }
 
@@ -472,7 +473,7 @@ if (!\function_exists('logger_instance')) {
     function logger_phpVersion($name = null)
     {
         $logger = \logger_instance($name);
-        if ($logger instanceof LoggerInterface)
+        if ($logger instanceof AsyncLoggerInterface)
             return $logger->addPhpVersion();
     }
 }
