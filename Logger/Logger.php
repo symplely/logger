@@ -71,6 +71,11 @@ class Logger extends AsyncLogger implements AsyncLoggerInterface
         $this->arrayLogs = [];
     }
 
+    public static function isName($context = [], $name = null): bool
+    {
+        return \is_string($context) && empty($name);
+    }
+
     public static function getLogger($name): AsyncLoggerInterface
     {
         if (empty($name)) {

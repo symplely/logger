@@ -255,7 +255,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_emergency(string $message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
@@ -274,7 +274,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_alert($message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
@@ -293,7 +293,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_critical(string $message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
@@ -312,7 +312,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_error(string $message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
@@ -331,7 +331,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_warning(string $message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
@@ -350,7 +350,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_notice(string $message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
@@ -369,7 +369,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_info($message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
@@ -388,7 +388,7 @@ if (!\function_exists('logger_instance')) {
      */
     function log_debug(string $message, $context = [], $name = null)
     {
-        if (\is_string($context) && empty($name)) {
+        if (Logger::isName($context, $name)) {
             $name = $context;
             $context = [];
         }
